@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  nameKey      String   @unique
+  role         String   @default("member")
+  passwordHash String?
+  passwordSalt String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lastSeenAt   DateTime @default(now())
+  deletedAt    DateTime?
+
+  checkIns     CheckIn[]
+  contentReads ContentRead[]
+}
+
+model Content {
+  id                 String   @id @default(cuid())
+
+  title              String
+  contentType        String   @default("recording")
+  status             String   @default("draft")
+
+  speaker            String?
+  series             String?
+  description        String
+  scripture          String?
+  contentBody        String?
+
+  resourceUrl        String?
+  date               String
+  duration           String?
+  tagsText           String   @default("")
+  searchKeywordsText String   @default("")
+  coverColor         String   @default("#7c6f64")
+
+  viewCount          Int      @default(0)
+
+  publishedAt        DateTime?
+  archivedAt         DateTime?
+  deletedAt          DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  reads              ContentRead[]
+}
+
+model ContentRead {
+  id        String   @id @default(cuid())
+
+  contentId String
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, userId])
+}
+
+model CheckIn {
+  id              String   @id @default(cuid())
+  userId          String
+  sermonId        String
+  listenedAt      DateTime @default(now())
+  progressPercent Int      @default(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sermonId])
+}
+model Share {
+  id        String   @id @default(cuid())
+
+  name      String
+  title     String
+  content   String
+
+  ownerKey  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  deletedAt DateTime?
+
+  favorites ShareFavorite[]
+
+  @@index([ownerKey])
+  @@index([expiresAt])
+}
+
+model ShareFavorite {
+  id         String   @id @default(cuid())
+
+  shareId    String
+  visitorKey String
+
+  createdAt  DateTime @default(now())
+
+  share Share @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@unique([shareId, visitorKey])
+  @@index([visitorKey])
+}
