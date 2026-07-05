@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
+import { AudioBlobUploadField } from "@/components/AudioBlobUploadField";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -255,20 +256,9 @@ export default function NewContentPage() {
                         </div>
                     </div>
 
+                    <AudioBlobUploadField inputClass={inputClass} />
+                    
                     <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                资源链接
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="resourceUrl"
-                                type="text"
-                                placeholder="音频、图片、文件或外部链接地址"
-                                className={inputClass}
-                            />
-                        </div>
-
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-700">
                                 标签

@@ -35,3 +35,5 @@ Thumbs.db
 # temporary / local scripts
 *.bak
 prisma/clear-data.js
+# TypeScript cache
+tsconfig.tsbuildinfo
