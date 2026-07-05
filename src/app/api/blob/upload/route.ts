@@ -10,6 +10,7 @@ const allowedAudioTypes = [
   "audio/mpeg",
   "audio/mp3",
   "audio/mp4",
+  "audio/m4a",
   "audio/x-m4a",
   "audio/wav",
   "audio/x-wav",
@@ -29,29 +30,7 @@ export async function POST(request: Request) {
       body,
       request,
 
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        const adminPassword = process.env.ADMIN_PASSWORD;
-
-        if (!adminPassword) {
-          throw new Error("管理员上传密码尚未配置。");
-        }
-
-        let uploadPassword = "";
-
-        try {
-          const payload = JSON.parse(clientPayload || "{}") as {
-            uploadPassword?: string;
-          };
-
-          uploadPassword = String(payload.uploadPassword ?? "");
-        } catch {
-          throw new Error("上传验证信息无效。");
-        }
-
-        if (uploadPassword !== adminPassword) {
-          throw new Error("没有上传权限。");
-        }
-
+      onBeforeGenerateToken: async (pathname) => {
         if (!hasAllowedAudioExtension(pathname)) {
           throw new Error("只允许上传 mp3、m4a、wav、ogg 或 aac 音频文件。");
         }
@@ -61,7 +40,7 @@ export async function POST(request: Request) {
           maximumSizeInBytes: MAX_AUDIO_SIZE,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
-            type: "admin-audio-upload",
+            type: "audio-upload",
           }),
         };
       },
