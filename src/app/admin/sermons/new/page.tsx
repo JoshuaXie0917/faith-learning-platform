@@ -215,49 +215,10 @@ export default function NewContentPage() {
                                 className={inputClass}
                             />
                         </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                系列
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="series"
-                                type="text"
-                                placeholder="例如：安静中的学习"
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                经文 / 来源
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="scripture"
-                                type="text"
-                                placeholder="例如：诗篇 46:10"
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                时长
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="duration"
-                                type="text"
-                                placeholder="例如：42 分钟"
-                                className={inputClass}
-                            />
-                        </div>
                     </div>
 
                     <AudioBlobUploadField inputClass={inputClass} />
-                    
+
                     <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-700">
