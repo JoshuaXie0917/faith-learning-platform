@@ -56,7 +56,12 @@ export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) 
       const pathname = `resources/${crypto.randomUUID()}${safeExtension}`;
       const contentType = file.type || "application/octet-stream";
 
-      const blob: PutBlobResult = await upload(pathname, file, {
+      // 关键：不要把原始 File 直接传给 Vercel Blob。
+      // 中文文件名可能会导致浏览器 fetch header 报 Invalid value。
+      // 这里转成 Blob，只保留文件内容和 contentType，不带原始中文文件名。
+      const uploadBody = file.slice(0, file.size, contentType);
+
+      const blob: PutBlobResult = await upload(pathname, uploadBody, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
         contentType,
