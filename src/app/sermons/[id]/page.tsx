@@ -30,6 +30,19 @@ function getResourceLabel(contentType: string) {
   return labels[contentType] ?? "打开资源";
 }
 
+function isAudioResource(resourceUrl: string, contentType: string) {
+  if (contentType === "recording" || contentType === "music") {
+    return true;
+  }
+
+  try {
+    const url = new URL(resourceUrl);
+    return /\.(mp3|m4a|wav|ogg|aac)(\?.*)?$/i.test(url.pathname);
+  } catch {
+    return /\.(mp3|m4a|wav|ogg|aac)(\?.*)?$/i.test(resourceUrl);
+  }
+}
+
 export default async function SermonDetailPage({ params }: Props) {
   const { id } = await params;
 
@@ -62,7 +75,10 @@ export default async function SermonDetailPage({ params }: Props) {
   }
 
   const tags = parseJsonTextArray(content.tagsText);
-  const resourceUrl = content.resourceUrl?.trim();
+  const resourceUrl = content.resourceUrl?.trim() ?? "";
+  const hasAudioResource = resourceUrl
+    ? isAudioResource(resourceUrl, content.contentType)
+    : false;
 
   const allContents = await prisma.content.findMany({
     where: {
@@ -166,8 +182,21 @@ export default async function SermonDetailPage({ params }: Props) {
         {resourceUrl && (
           <section className="mb-6 rounded-2xl border border-amber-100 bg-amber-50 p-4 sm:mb-8 sm:p-5">
             <h2 className="mb-3 text-lg font-semibold text-stone-900">
-              资源链接
+              资源内容
             </h2>
+
+            {hasAudioResource && (
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-white p-4">
+                <p className="mb-3 text-sm font-medium text-stone-700">
+                  音频播放
+                </p>
+
+                <audio controls preload="metadata" className="w-full">
+                  <source src={resourceUrl} />
+                  你的浏览器不支持音频播放。
+                </audio>
+              </div>
+            )}
 
             <p className="mb-4 break-all text-sm leading-7 text-stone-600">
               {resourceUrl}
@@ -179,7 +208,7 @@ export default async function SermonDetailPage({ params }: Props) {
               rel="noreferrer"
               className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
             >
-              {getResourceLabel(content.contentType)}
+              {hasAudioResource ? "在新页面打开音频" : getResourceLabel(content.contentType)}
             </a>
           </section>
         )}
