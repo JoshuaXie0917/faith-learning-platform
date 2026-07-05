@@ -22,6 +22,16 @@ function getSafeExtension(fileName: string) {
   return /^[.][a-zA-Z0-9]+$/.test(extension) ? extension : "";
 }
 
+function getSafeContentType(file: File) {
+  const contentType = file.type.trim();
+
+  if (/^[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+$/.test(contentType)) {
+    return contentType;
+  }
+
+  return "application/octet-stream";
+}
+
 export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,23 +64,26 @@ export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) 
     try {
       const safeExtension = getSafeExtension(file.name);
       const pathname = `resources/${crypto.randomUUID()}${safeExtension}`;
-      const contentType = file.type || "application/octet-stream";
+      const contentType = getSafeContentType(file);
 
-      // 关键：不要把原始 File 直接传给 Vercel Blob。
-      // 中文文件名可能会导致浏览器 fetch header 报 Invalid value。
-      // 这里转成 Blob，只保留文件内容和 contentType，不带原始中文文件名。
       const uploadBody = file.slice(0, file.size, contentType);
 
       const blob: PutBlobResult = await upload(pathname, uploadBody, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
         contentType,
+        multipart: file.size > 8 * 1024 * 1024,
+        onUploadProgress: ({ percentage }) => {
+          setMessage(`正在上传：${Math.round(percentage)}%`);
+        },
       });
 
       setResourceUrl(blob.url);
       setUploadedFileName(file.name);
       setMessage("文件已上传成功，发布内容时会自动保存。");
     } catch (uploadError) {
+      console.error("Blob upload failed:", uploadError);
+
       setError(
         uploadError instanceof Error
           ? uploadError.message

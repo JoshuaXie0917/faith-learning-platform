@@ -14,23 +14,36 @@ export async function POST(request: Request) {
       body,
       request,
 
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname, _clientPayload, multipart) => {
+        console.log("Blob token requested:", {
+          pathname,
+          multipart,
+        });
+
         return {
           maximumSizeInBytes: MAX_FILE_SIZE,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             type: "resource-upload",
+            pathname,
           }),
         };
       },
 
-      onUploadCompleted: async ({ blob }) => {
-        console.log("文件上传完成：", blob.url);
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log("Blob upload completed:", {
+          url: blob.url,
+          pathname: blob.pathname,
+          contentType: blob.contentType,
+          tokenPayload,
+        });
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    console.error("Blob upload route failed:", error);
+
     return NextResponse.json(
       {
         error:
