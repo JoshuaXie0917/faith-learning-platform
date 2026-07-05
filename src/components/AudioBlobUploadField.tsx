@@ -10,23 +10,16 @@ type AudioBlobUploadFieldProps = {
   inputClass: string;
 };
 
-function getSafeFileName(fileName: string) {
+function formatSize(size: number) {
+  return `${(size / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function getSafeExtension(fileName: string) {
   const extension = fileName.includes(".")
     ? fileName.slice(fileName.lastIndexOf(".")).toLowerCase()
     : "";
 
-  const baseName = fileName
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[^a-zA-Z0-9-_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-
-  return `${baseName || "resource"}${extension}`;
-}
-
-function formatSize(size: number) {
-  return `${(size / 1024 / 1024).toFixed(1)}MB`;
+  return /^[.][a-zA-Z0-9]+$/.test(extension) ? extension : "";
 }
 
 export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) {
@@ -59,12 +52,14 @@ export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) 
     setIsUploading(true);
 
     try {
-      const safeFileName = getSafeFileName(file.name);
-      const pathname = `resources/${Date.now()}-${safeFileName}`;
+      const safeExtension = getSafeExtension(file.name);
+      const pathname = `resources/${crypto.randomUUID()}${safeExtension}`;
+      const contentType = file.type || "application/octet-stream";
 
       const blob: PutBlobResult = await upload(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
+        contentType,
       });
 
       setResourceUrl(blob.url);
@@ -90,11 +85,7 @@ export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) 
           上传文件
         </label>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          className={inputClass}
-        />
+        <input ref={fileInputRef} type="file" className={inputClass} />
 
         <p className="mt-2 text-xs leading-6 text-stone-400">
           可以上传音频、图片、PDF、Word、PPT 或其他学习资料。单个文件最大 100MB。
