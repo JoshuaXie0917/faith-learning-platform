@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
-import { saveUploadedResourceFile } from "@/lib/saveUploadedResourceFile";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -58,11 +57,7 @@ async function createContent(formData: FormData) {
     const series = String(formData.get("series") ?? "").trim();
     const scripture = String(formData.get("scripture") ?? "").trim();
     const duration = String(formData.get("duration") ?? "").trim();
-    const typedResourceUrl = String(formData.get("resourceUrl") ?? "").trim();
-    const uploadedResourceUrl = await saveUploadedResourceFile(
-        formData.get("resourceFile")
-    );
-    const resourceUrl = uploadedResourceUrl ?? typedResourceUrl;
+    const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
     const contentBody = String(formData.get("contentBody") ?? "").trim();
 
     const isComplete = Boolean(title && contentType && date && description);
@@ -272,24 +267,6 @@ export default function NewContentPage() {
                                 placeholder="音频、图片、文件或外部链接地址"
                                 className={inputClass}
                             />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                上传资源文件
-                            </label>
-
-                            <input
-                                suppressHydrationWarning
-                                name="resourceFile"
-                                type="file"
-                                accept="audio/*,image/*,.pdf,.doc,.docx,.ppt,.pptx,.txt"
-                                className={inputClass}
-                            />
-
-                            <p className="mt-2 text-xs leading-6 text-stone-400">
-                                支持音频、图片、PDF、Word、PPT 和文本文件。上传文件后会自动生成资源链接；如果同时填写资源链接，以上传文件为准。
-                            </p>
                         </div>
 
                         <div>
