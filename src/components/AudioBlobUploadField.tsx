@@ -7,135 +7,119 @@ import { useRef, useState } from "react";
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 type AudioBlobUploadFieldProps = {
-  inputClass: string;
+    inputClass: string;
 };
 
 function formatSize(size: number) {
-  return `${(size / 1024 / 1024).toFixed(1)}MB`;
+    return `${(size / 1024 / 1024).toFixed(1)}MB`;
 }
 
 function getSafeExtension(fileName: string) {
-  const extension = fileName.includes(".")
-    ? fileName.slice(fileName.lastIndexOf(".")).toLowerCase()
-    : "";
+    const extension = fileName.includes(".")
+        ? fileName.slice(fileName.lastIndexOf(".")).toLowerCase()
+        : "";
 
-  return /^[.][a-zA-Z0-9]+$/.test(extension) ? extension : "";
-}
-
-function getSafeContentType(file: File) {
-  const contentType = file.type.trim();
-
-  if (/^[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+$/.test(contentType)) {
-    return contentType;
-  }
-
-  return "application/octet-stream";
+    return /^[.][a-zA-Z0-9]+$/.test(extension) ? extension : "";
 }
 
 export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [resourceUrl, setResourceUrl] = useState("");
-  const [uploadedFileName, setUploadedFileName] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+    const [resourceUrl, setResourceUrl] = useState("");
+    const [uploadedFileName, setUploadedFileName] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
 
-  async function handleUploadFile() {
-    const file = fileInputRef.current?.files?.[0];
+    async function handleUploadFile() {
+        const file = fileInputRef.current?.files?.[0];
 
-    setMessage("");
-    setError("");
+        setMessage("");
+        setError("");
 
-    if (!file) {
-      setError("请先选择一个文件。");
-      return;
+        if (!file) {
+            setError("请先选择一个文件。");
+            return;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+            setError(
+                `文件不能超过 100MB。当前文件大小是 ${formatSize(file.size)}。请压缩或拆分后再上传。`
+            );
+            return;
+        }
+
+        setIsUploading(true);
+
+        try {
+            const safeExtension = getSafeExtension(file.name);
+            const pathname = `resources/${crypto.randomUUID()}${safeExtension}`;
+
+            const uploadBody = file.slice(0, file.size);
+
+            const blob: PutBlobResult = await upload(pathname, uploadBody, {
+                access: "public",
+                handleUploadUrl: "/api/blob/upload",
+            });
+
+            setResourceUrl(blob.url);
+            setUploadedFileName(file.name);
+            setMessage("文件已上传成功，发布内容时会自动保存。");
+        } catch (uploadError) {
+            console.error("Blob upload failed:", uploadError);
+
+            setError(
+                uploadError instanceof Error
+                    ? uploadError.message
+                    : "文件上传失败，请稍后再试。"
+            );
+        } finally {
+            setIsUploading(false);
+        }
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      setError(
-        `文件不能超过 100MB。当前文件大小是 ${formatSize(file.size)}。请压缩或拆分后再上传。`
-      );
-      return;
-    }
+    return (
+        <div className="space-y-4 rounded-3xl border border-stone-200 bg-stone-50 p-4 sm:p-5">
+            <input type="hidden" name="resourceUrl" value={resourceUrl} />
 
-    setIsUploading(true);
+            <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">
+                    上传文件
+                </label>
 
-    try {
-      const safeExtension = getSafeExtension(file.name);
-      const pathname = `resources/${crypto.randomUUID()}${safeExtension}`;
-      const contentType = getSafeContentType(file);
+                <input ref={fileInputRef} type="file" className={inputClass} />
 
-      const uploadBody = file.slice(0, file.size, contentType);
+                <p className="mt-2 text-xs leading-6 text-stone-400">
+                    可以上传音频、图片、PDF、Word、PPT 或其他学习资料。单个文件最大 100MB。
+                </p>
 
-      const blob: PutBlobResult = await upload(pathname, uploadBody, {
-        access: "public",
-        handleUploadUrl: "/api/blob/upload",
-        contentType,
-        multipart: file.size > 8 * 1024 * 1024,
-        onUploadProgress: ({ percentage }) => {
-          setMessage(`正在上传：${Math.round(percentage)}%`);
-        },
-      });
+                <button
+                    type="button"
+                    onClick={handleUploadFile}
+                    disabled={isUploading}
+                    className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+                >
+                    {isUploading ? "正在上传..." : "上传文件"}
+                </button>
+            </div>
 
-      setResourceUrl(blob.url);
-      setUploadedFileName(file.name);
-      setMessage("文件已上传成功，发布内容时会自动保存。");
-    } catch (uploadError) {
-      console.error("Blob upload failed:", uploadError);
+            {uploadedFileName && (
+                <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    文件已上传成功：{uploadedFileName}
+                </div>
+            )}
 
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "文件上传失败，请稍后再试。"
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  }
+            {message && (
+                <p className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
+                    {message}
+                </p>
+            )}
 
-  return (
-    <div className="space-y-4 rounded-3xl border border-stone-200 bg-stone-50 p-4 sm:p-5">
-      <input type="hidden" name="resourceUrl" value={resourceUrl} />
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">
-          上传文件
-        </label>
-
-        <input ref={fileInputRef} type="file" className={inputClass} />
-
-        <p className="mt-2 text-xs leading-6 text-stone-400">
-          可以上传音频、图片、PDF、Word、PPT 或其他学习资料。单个文件最大 100MB。
-        </p>
-
-        <button
-          type="button"
-          onClick={handleUploadFile}
-          disabled={isUploading}
-          className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
-        >
-          {isUploading ? "正在上传..." : "上传文件"}
-        </button>
-      </div>
-
-      {uploadedFileName && (
-        <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
-          文件已上传成功：{uploadedFileName}
+            {error && (
+                <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </p>
+            )}
         </div>
-      )}
-
-      {message && (
-        <p className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
-          {message}
-        </p>
-      )}
-
-      {error && (
-        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-    </div>
-  );
+    );
 }
