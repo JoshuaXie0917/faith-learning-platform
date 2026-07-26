@@ -56,15 +56,15 @@ export default function HomePage() {
               href="/dashboard"
               className="rounded-full bg-stone-950 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
             >
-              进入学习平台
+              进入学习中心
             </Link>
 
-            <a
-              href="#about"
-              className="rounded-full border border-stone-200 bg-white/70 px-7 py-3 text-sm font-semibold text-stone-700 shadow-sm backdrop-blur transition hover:bg-white"
+            <Link
+              href="/login"
+              className="rounded-full border border-stone-300 bg-white/80 px-7 py-3 text-sm font-semibold text-stone-800 shadow-sm backdrop-blur transition hover:border-stone-400 hover:bg-white"
             >
-              查看平台说明
-            </a>
+              管理员登录
+            </Link>
           </div>
         </section>
 

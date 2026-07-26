@@ -7,8 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { isContentExpired } from "@/lib/contentRetention";
 import { PageContainer } from "@/components/PageContainer";
-import { MemberGate } from "@/components/MemberGate";
-import { MemberStatusBar } from "@/components/MemberStatusBar";
 
 type PublicContent = {
   id: string;
@@ -428,7 +426,6 @@ export default function SermonsPage() {
   }
 
   return (
-    <MemberGate returnTo="/sermons">
       <PageContainer>
         <PageHeader
           title="真理集录"
@@ -442,7 +439,6 @@ export default function SermonsPage() {
             </Link>
           }
         />
-        <MemberStatusBar returnTo="/sermons" />
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
           <main className="min-w-0 space-y-5 sm:space-y-6">
@@ -733,6 +729,5 @@ export default function SermonsPage() {
           </aside>
         </div>
       </PageContainer>
-    </MemberGate>
   );
 }

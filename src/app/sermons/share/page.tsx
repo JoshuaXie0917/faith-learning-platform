@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
-import { MemberGate } from "@/components/MemberGate";
 
 const MAX_SHARE_LENGTH = 800;
 
@@ -112,7 +111,6 @@ export default function SharePage() {
     }
 
     return (
-        <MemberGate returnTo="/sermons/share">
             <PageContainer>
                 <PageHeader
                     title="发布分享"
@@ -224,6 +222,5 @@ export default function SharePage() {
                     </div>
                 </form>
             </PageContainer>
-        </MemberGate>
     );
 }

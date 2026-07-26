@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
-import { MemberGate } from "@/components/MemberGate";
 
 type ShareDetail = {
     id: string;
@@ -131,7 +130,6 @@ export default function ShareDetailPage() {
     }
 
     return (
-        <MemberGate returnTo={shareId ? `/sermons/share/${shareId}` : "/sermons"}>
             <PageContainer>
                 <PageHeader
                     title="学习分享"
@@ -207,6 +205,5 @@ export default function ShareDetailPage() {
                     </article>
                 )}
             </PageContainer>
-        </MemberGate>
     );
 }
