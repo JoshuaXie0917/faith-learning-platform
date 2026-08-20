@@ -19,9 +19,9 @@ export default function HomePage() {
           <nav className="flex items-center gap-3">
             <Link
               href="/about"
-              className="rounded-full border border-stone-200 bg-white/70 px-5 py-2 text-sm text-stone-700 shadow-sm backdrop-blur transition hover:bg-white"
+              className="rounded-full border border-amber-700 bg-amber-700 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:border-amber-800 hover:bg-amber-800"
             >
-              关于平台
+              信仰立场
             </Link>
 
             <Link
@@ -56,7 +56,7 @@ export default function HomePage() {
               href="/dashboard"
               className="rounded-full bg-stone-950 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
             >
-              进入学习中心
+              进入四月花平台
             </Link>
 
             <Link

@@ -1,134 +1,263 @@
 import Link from "next/link";
 
+const confessionItems = [
+  {
+    title: "威斯敏斯特信仰告白",
+    subtitle: "Westminster Confession of Faith",
+    description: "内容待补充",
+  },
+  {
+    title: "威斯敏斯特大要理问答",
+    subtitle: "Westminster Larger Catechism",
+    description: "内容待补充",
+  },
+  {
+    title: "威斯敏斯特小要理问答",
+    subtitle: "Westminster Shorter Catechism",
+    description: "内容待补充",
+  },
+];
+
+const churchItems = [
+  {
+    title: "教会治理",
+    subtitle: "Presbyterian Church Government",
+    description: "内容待补充",
+  },
+  {
+    title: "公共敬拜",
+    subtitle: "Directory for Public Worship",
+    description: "内容待补充",
+  },
+];
+
+const doctrineItems = [
+  "圣经",
+  "三一上帝",
+  "上帝的预旨",
+  "创造与护理",
+  "人的堕落与罪",
+  "圣约",
+  "基督与中保",
+  "有效恩召",
+  "称义",
+  "成圣",
+  "得救的信心",
+  "圣徒坚忍",
+  "上帝的律法",
+  "基督徒自由",
+  "敬拜与主日",
+  "教会",
+  "圣礼",
+  "洗礼",
+  "圣餐",
+  "复活与最后审判",
+];
+
+const historyItems = [
+  {
+    title: "苏格兰信条",
+    subtitle: "Scots Confession",
+  },
+  {
+    title: "苏格兰国家圣约",
+    subtitle: "National Covenant",
+  },
+  {
+    title: "庄严同盟与圣约",
+    subtitle: "Solemn League and Covenant",
+  },
+];
+
 export default function AboutPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#faf5ef] text-stone-800">
       {/* 牧羊背景 */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-55"
         style={{ backgroundImage: "url('/images/shepherd-bg.png')" }}
       />
 
       {/* 柔和遮罩 */}
-      <div className="absolute inset-0 bg-[#faf5ef]/45" />
+      <div className="absolute inset-0 bg-[#faf5ef]/65" />
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-10">
-        <header className="mb-20 flex items-center justify-between">
+      <div className="relative z-10 mx-auto max-w-6xl px-6 py-10">
+        {/* 顶部导航 */}
+        <header className="mb-20 flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="rounded-full border border-stone-200 bg-white/70 px-5 py-2 text-sm text-stone-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-stone-950"
+            className="rounded-full border border-stone-200 bg-white/75 px-5 py-2 text-sm text-stone-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-stone-950"
           >
             返回首页
           </Link>
 
           <Link
-            href="/login"
+            href="/dashboard"
             className="rounded-full bg-stone-950 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
           >
-            进入平台
+            进入学习中心
           </Link>
         </header>
 
+        {/* 页面标题 */}
         <section className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex rounded-full border border-amber-200 bg-white/70 px-4 py-1.5 text-sm text-amber-700 shadow-sm backdrop-blur">
-            关于四月花
+          <div className="mb-6 inline-flex rounded-full border border-amber-200 bg-white/75 px-4 py-1.5 text-sm text-amber-700 shadow-sm backdrop-blur">
+            Statement of Faith
           </div>
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-stone-950 sm:text-5xl">
-            为了更认真地学习，也为了更安静地追求真理
+            信仰立场
           </h1>
 
           <p className="mx-auto max-w-2xl text-base leading-8 text-stone-700">
-            四月花不是一个热闹的平台，而是一个安静的内部学习空间。它帮助成员整理内容、记录思考、回顾所得，并在长期学习中彼此提醒、彼此同行。
+            本页面用于整理本平台所持守的信仰标准、要理问答、教会治理、
+            敬拜原则与相关历史文献。
           </p>
         </section>
 
-        <section className="mt-20 grid gap-5 md:grid-cols-3">
-          {[
-            {
-              title: "整理知识",
-              description:
-                "零散的内容如果不被整理，很容易随着时间淡去。把主题、日期、讲员和学习资料集中保存，是为了让每一次学习都能被重新查找、再次思考。",
-            },
-            {
-              title: "记录思考",
-              description:
-                "学习不只是听见信息，也包括分辨、消化和回应。写下心得，是把外在内容转化为内在理解的过程。",
-            },
-            {
-              title: "彼此同行",
-              description:
-                "一个人学习容易松散，彼此提醒则更容易坚持。记录和分享不是为了表现自己，而是为了让大家知道，我们正在一起走这条追求真理的路。",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-stone-200 bg-white/75 p-6 shadow-sm backdrop-blur"
-            >
-              <h2 className="mb-4 text-lg font-bold text-stone-950">
-                {item.title}
-              </h2>
-              <p className="text-sm leading-7 text-stone-700">
-                {item.description}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        <section className="mx-auto mt-16 max-w-4xl rounded-3xl border border-stone-200 bg-white/75 p-8 shadow-sm backdrop-blur">
-          <h2 className="mb-5 text-2xl font-bold text-stone-950">
-            学习的目的
-          </h2>
-
-          <div className="space-y-5 text-sm leading-8 text-stone-700">
-            <p>
-              学习不是为了堆积信息，也不是为了让人显得懂得更多。真正有价值的学习，会让人更清醒、更谦卑，也更有分辨力。知识若只是停在头脑里，很容易变成负担；但经过反复思想、认真记录和实际操练，它就会慢慢成为生命中的光。
+        {/* 信仰标准 */}
+        <section className="mt-20">
+          <div className="mb-7">
+            <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
+              CONFESSIONAL STANDARDS
             </p>
 
-            <p>
-              古人说：“学而不思则罔，思而不学则殆。”学习和思想不能分开。只听不想，容易流于表面；只想不学，又容易陷入自己的有限。四月花希望帮助成员在听、读、想、记之间建立一种稳定的节奏。
-            </p>
+            <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
+              信仰标准
+            </h2>
 
-            <p>
-              《礼记》中说：“博学之，审问之，慎思之，明辨之，笃行之。”这句话很适合描述这个平台的方向：广泛学习，认真提问，安静思考，清楚分辨，最后落实在真实生活中。
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600">
+              这里将整理主要信仰告白与要理问答。
             </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {confessionItems.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur"
+              >
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-700">
+                  {item.subtitle}
+                </p>
+
+                <h3 className="text-xl font-bold text-stone-950">
+                  {item.title}
+                </h3>
+
+                <p className="mt-4 text-sm leading-7 text-stone-600">
+                  {item.description}
+                </p>
+              </article>
+            ))}
           </div>
         </section>
 
-        <section className="mx-auto mt-8 max-w-4xl rounded-3xl border border-stone-200 bg-white/75 p-8 shadow-sm backdrop-blur">
-          <h2 className="mb-5 text-2xl font-bold text-stone-950">
-            为什么要记录
-          </h2>
-
-          <div className="space-y-5 text-sm leading-8 text-stone-700">
-            <p>
-              人很容易忘记自己曾经被什么提醒，也容易忘记自己曾经明白过什么。记录不是形式，而是一种对学习的尊重。它帮助我们把短暂的感动沉淀下来，把模糊的想法写清楚，把零散的收获整理成可以回看的路径。
+        {/* 教会治理与敬拜 */}
+        <section className="mt-16">
+          <div className="mb-7">
+            <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
+              CHURCH & WORSHIP
             </p>
 
-            <p>
-              陆游有句诗：“纸上得来终觉浅，绝知此事要躬行。”知识如果只是停在纸面，就仍然浅；但如果能被思想、记录、讨论，并在生活中慢慢实践，它才会真正进入人心。
-            </p>
+            <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
+              教会治理与敬拜
+            </h2>
+          </div>
 
-            <p>
-              因此，四月花中的听道接龙、学习记录和心得分享，都不是为了增加负担，而是为了帮助成员看见自己的学习轨迹，也看见大家正在一同前行。
-            </p>
+          <div className="grid gap-5 md:grid-cols-2">
+            {churchItems.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur"
+              >
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-700">
+                  {item.subtitle}
+                </p>
+
+                <h3 className="text-xl font-bold text-stone-950">
+                  {item.title}
+                </h3>
+
+                <p className="mt-4 text-sm leading-7 text-stone-600">
+                  {item.description}
+                </p>
+              </article>
+            ))}
           </div>
         </section>
 
-        <section className="mx-auto mt-8 max-w-4xl rounded-3xl border border-stone-200 bg-white/75 p-8 shadow-sm backdrop-blur">
-          <h2 className="mb-5 text-2xl font-bold text-stone-950">
-            平台会继续做什么
-          </h2>
-
-          <div className="space-y-5 text-sm leading-8 text-stone-700">
-            <p>
-              第一版主要完成内容浏览、学习记录、心得分享和后台管理。之后可以继续加入真实账号、数据库、内容上传、权限管理、搜索筛选和学习统计。
+        {/* 教义主题 */}
+        <section className="mt-16 rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur sm:p-8">
+          <div className="mb-7">
+            <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
+              DOCTRINE
             </p>
 
-            <p>
-              它的目标不是复杂，而是清楚；不是热闹，而是持久。像朱熹所说：“问渠那得清如许？为有源头活水来。”学习也需要活水，需要不断回到源头，不断更新理解。
+            <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
+              教义主题
+            </h2>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600">
+              后续可以按照教义主题逐步整理对应的信条章节、要理问答和学习资料。
             </p>
           </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {doctrineItems.map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-stone-200 bg-[#faf7f2] px-4 py-3 text-sm font-medium text-stone-700"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 历史文献 */}
+        <section className="mt-16">
+          <div className="mb-7">
+            <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
+              HISTORICAL DOCUMENTS
+            </p>
+
+            <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
+              历史文献
+            </h2>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600">
+              这里可以逐步整理苏格兰改革宗与长老会传统中的重要历史文献。
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {historyItems.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-2xl border border-stone-200 bg-white/75 p-5 shadow-sm backdrop-blur"
+              >
+                <h3 className="font-semibold text-stone-950">
+                  {item.title}
+                </h3>
+
+                <p className="mt-2 text-xs leading-6 text-stone-500">
+                  {item.subtitle}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* 后续内容区域 */}
+        <section className="mx-auto mt-16 max-w-4xl rounded-3xl border border-dashed border-stone-300 bg-white/55 p-8 text-center backdrop-blur">
+          <h2 className="text-xl font-bold text-stone-950">
+            信仰立场内容将持续整理
+          </h2>
+
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-stone-600">
+            后续可在以上分类中逐步加入正式文本、问答、解释与相关学习资料。
+          </p>
         </section>
       </div>
     </main>

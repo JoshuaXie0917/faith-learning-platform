@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "四月花",
@@ -18,6 +19,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
