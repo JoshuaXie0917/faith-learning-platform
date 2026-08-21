@@ -52,16 +52,17 @@ async function createContent(formData: FormData) {
     const title = String(formData.get("title") ?? "").trim();
     const contentType = String(formData.get("contentType") ?? "recording");
     const date = String(formData.get("date") ?? "").trim();
-    const description = String(formData.get("description") ?? "").trim();
-
     const speaker = String(formData.get("speaker") ?? "").trim();
     const series = String(formData.get("series") ?? "").trim();
-    const scripture = String(formData.get("scripture") ?? "").trim();
-    const duration = String(formData.get("duration") ?? "").trim();
     const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
     const contentBody = String(formData.get("contentBody") ?? "").trim();
 
-    const isComplete = Boolean(title && contentType && date && description);
+    const description =
+        contentBody.length > 120
+            ? `${contentBody.slice(0, 120)}...`
+            : contentBody;
+
+    const isComplete = Boolean(title && contentType && date && contentBody);
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
 
     const content = await prisma.content.create({
@@ -71,24 +72,22 @@ async function createContent(formData: FormData) {
             status: nextStatus,
 
             date: date || getTodayDate(),
-            description: description || "暂无简介",
+            description: description || "暂无内容",
 
             speaker: speaker || null,
             series: series || null,
-            scripture: scripture || null,
-            duration: duration || null,
+            scripture: null,
+            duration: null,
             resourceUrl: resourceUrl || null,
             contentBody: contentBody || null,
 
             tagsText: toJsonArrayText(formData.get("tags")),
-            searchKeywordsText: toJsonArrayText(formData.get("searchKeywords")),
-
-            coverColor: "#7c6f64",
-
-            publishedAt: nextStatus === "published" ? new Date() : null,
-            archivedAt: null,
-            deletedAt: null,
-        },
+            searchKeywordsText: JSON.stringify(
+                [title, speaker, series]
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            ),
+        }
     });
 
     revalidatePath("/admin");
@@ -123,7 +122,7 @@ export default function NewContentPage() {
                 className="space-y-8 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
             >
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    发布需要填写：标题、内容类型、日期、内容简介。没有填完整时，系统会自动保存为草稿。
+                    发布需要填写：标题、内容类型、日期、主要内容。其他信息可以根据需要补充；未填写完整时会保存为草稿。
                 </div>
 
                 <section>
@@ -179,18 +178,23 @@ export default function NewContentPage() {
                             />
                         </div>
                     </div>
-
                     <div className="mt-5 sm:mt-6">
                         <label className="mb-2 block text-sm font-medium text-stone-700">
-                            内容简介 <span className="text-red-500">*</span>
+                            主要内容 <span className="text-red-500">*</span>
                         </label>
+
                         <textarea
                             suppressHydrationWarning
-                            name="description"
-                            rows={4}
-                            placeholder="简单介绍这篇内容的主题和帮助。"
+                            name="contentBody"
+                            rows={10}
+                            required
+                            placeholder="填写文章正文、讲道整理、学习内容、资料说明或相关文字。"
                             className={textareaClass}
                         />
+
+                        <p className="mt-2 text-xs leading-6 text-stone-400">
+                            主要内容是正式发布的必填项目，也会用于自动生成内容摘要。
+                        </p>
                     </div>
                 </section>
 
@@ -215,6 +219,19 @@ export default function NewContentPage() {
                                 className={inputClass}
                             />
                         </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                                系列
+                            </label>
+
+                            <input
+                                suppressHydrationWarning
+                                name="series"
+                                type="text"
+                                placeholder="例如：罗马书系列"
+                                className={inputClass}
+                            />
+                        </div>
                     </div>
 
                     <AudioBlobUploadField inputClass={inputClass} />
@@ -233,34 +250,6 @@ export default function NewContentPage() {
                             />
                         </div>
 
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                搜索关键词
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="searchKeywords"
-                                type="text"
-                                placeholder="例如：链接，音频，PDF，图片，报告"
-                                className={inputClass}
-                            />
-                            <p className="mt-2 text-xs leading-6 text-stone-400">
-                                这些词不会直接显示给普通用户，但会帮助搜索锁定内容。
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                正文内容
-                            </label>
-                            <textarea
-                                suppressHydrationWarning
-                                name="contentBody"
-                                rows={8}
-                                placeholder="可以填写文章正文、讲道整理、学习问题或补充说明。"
-                                className={textareaClass}
-                            />
-                        </div>
                     </div>
                 </section>
 
