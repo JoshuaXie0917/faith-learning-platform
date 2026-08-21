@@ -17,47 +17,84 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  lastSeenAt   DateTime @default(now())
-  deletedAt    DateTime?
+  lastSeenAt DateTime  @default(now())
+  deletedAt  DateTime?
 
   checkIns     CheckIn[]
   contentReads ContentRead[]
 }
 
 model Content {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  title              String
-  contentType        String   @default("recording")
-  status             String   @default("draft")
+  title       String
+  contentType String @default("recording")
+  status      String @default("draft")
 
-  speaker            String?
-  series             String?
-  description        String
-  scripture          String?
-  contentBody        String?
+  // 旧字段：暂时保留，保护已有数据
+  speaker String?
+  series  String?
+
+  // 新关系字段
+  speakerId String?
+  seriesId  String?
+
+  speakerRef Speaker? @relation(fields: [speakerId], references: [id], onDelete: SetNull)
+  seriesRef  Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+
+  description String
+  scripture   String?
+  contentBody String?
 
   resourceUrl        String?
   date               String
   duration           String?
-  tagsText           String   @default("")
-  searchKeywordsText String   @default("")
-  coverColor         String   @default("#7c6f64")
+  tagsText           String  @default("")
+  searchKeywordsText String  @default("")
+  coverColor         String  @default("#7c6f64")
 
-  viewCount          Int      @default(0)
+  viewCount Int @default(0)
 
-  publishedAt        DateTime?
-  archivedAt         DateTime?
-  deletedAt          DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  deletedAt   DateTime?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  reads              ContentRead[]
+  reads ContentRead[]
+
+  @@index([speakerId])
+  @@index([seriesId])
+}
+
+model Speaker {
+  id      String @id @default(cuid())
+  name    String
+  nameKey String @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  contents Content[]
+}
+
+model Series {
+  id          String  @id @default(cuid())
+  title       String
+  titleKey    String  @unique
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  contents Content[]
 }
 
 model ContentRead {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   contentId String
   userId    String
@@ -81,17 +118,18 @@ model CheckIn {
 
   @@unique([userId, sermonId])
 }
+
 model Share {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  name      String
-  title     String
-  content   String
+  name    String
+  title   String
+  content String
 
-  ownerKey  String
+  ownerKey String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   expiresAt DateTime
   deletedAt DateTime?
 
@@ -102,12 +140,12 @@ model Share {
 }
 
 model ShareFavorite {
-  id         String   @id @default(cuid())
+  id String @id @default(cuid())
 
   shareId    String
   visitorKey String
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   share Share @relation(fields: [shareId], references: [id], onDelete: Cascade)
 
