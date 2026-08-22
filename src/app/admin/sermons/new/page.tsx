@@ -26,7 +26,22 @@ const textareaClass =
     "w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600";
 
 function getTodayDate() {
-    return new Date().toISOString().slice(0, 10);
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Halifax",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date());
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    return `${year}-${month}-${day}`;
+}
+
+function normalizeKey(value: string) {
+    return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function toJsonArrayText(value: FormDataEntryValue | null) {
@@ -65,6 +80,38 @@ async function createContent(formData: FormData) {
     const isComplete = Boolean(title && contentType && date && contentBody);
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
 
+    const speakerRecord = speaker
+        ? await prisma.speaker.upsert({
+            where: {
+                nameKey: normalizeKey(speaker),
+            },
+            update: {
+                name: speaker,
+                deletedAt: null,
+            },
+            create: {
+                name: speaker,
+                nameKey: normalizeKey(speaker),
+            },
+        })
+        : null;
+
+    const seriesRecord = series
+        ? await prisma.series.upsert({
+            where: {
+                titleKey: normalizeKey(series),
+            },
+            update: {
+                title: series,
+                deletedAt: null,
+            },
+            create: {
+                title: series,
+                titleKey: normalizeKey(series),
+            },
+        })
+        : null;
+
     const content = await prisma.content.create({
         data: {
             title: title || "未命名草稿",
@@ -76,6 +123,10 @@ async function createContent(formData: FormData) {
 
             speaker: speaker || null,
             series: series || null,
+
+            speakerId: speakerRecord?.id ?? null,
+            seriesId: seriesRecord?.id ?? null,
+
             scripture: null,
             duration: null,
             resourceUrl: resourceUrl || null,
@@ -87,6 +138,10 @@ async function createContent(formData: FormData) {
                     .map((item) => item.trim())
                     .filter(Boolean)
             ),
+
+            publishedAt: nextStatus === "published" ? new Date() : null,
+            archivedAt: null,
+            deletedAt: null,
         }
     });
 
