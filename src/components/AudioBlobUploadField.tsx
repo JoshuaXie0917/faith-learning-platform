@@ -8,6 +8,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 type AudioBlobUploadFieldProps = {
     inputClass: string;
+    initialResourceUrl?: string;
 };
 
 function formatSize(size: number) {
@@ -22,10 +23,13 @@ function getSafeExtension(fileName: string) {
     return /^[.][a-zA-Z0-9]+$/.test(extension) ? extension : "";
 }
 
-export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) {
+export function AudioBlobUploadField({
+    inputClass,
+    initialResourceUrl = "",
+}: AudioBlobUploadFieldProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [resourceUrl, setResourceUrl] = useState("");
+    const [resourceUrl, setResourceUrl] = useState(initialResourceUrl);
     const [uploadedFileName, setUploadedFileName] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState("");
@@ -101,6 +105,24 @@ export function AudioBlobUploadField({ inputClass }: AudioBlobUploadFieldProps) 
                 >
                     {isUploading ? "正在上传..." : "上传文件"}
                 </button>
+                {resourceUrl && !uploadedFileName && (
+                    <div className="mt-4 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600">
+                        <p className="font-medium text-stone-700">当前已有文件</p>
+
+                        <a
+                            href={resourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block break-all text-xs leading-6 text-stone-500 underline"
+                        >
+                            {resourceUrl}
+                        </a>
+
+                        <p className="mt-2 text-xs leading-6 text-stone-400">
+                            如果不重新上传文件，保存时会继续保留当前文件。
+                        </p>
+                    </div>
+                )}
             </div>
 
             {uploadedFileName && (

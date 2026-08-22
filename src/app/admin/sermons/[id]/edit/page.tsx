@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
-import { saveUploadedResourceFile } from "@/lib/saveUploadedResourceFile";
+import { AudioBlobUploadField } from "@/components/AudioBlobUploadField";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +34,22 @@ const textareaClass =
     "w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600";
 
 function getTodayDate() {
-    return new Date().toISOString().slice(0, 10);
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Halifax",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date());
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    return `${year}-${month}-${day}`;
+}
+
+function normalizeKey(value: string) {
+    return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function parseTextArray(value: string | null) {
@@ -83,23 +98,60 @@ async function updateContent(formData: FormData) {
     const title = String(formData.get("title") ?? "").trim();
     const contentType = String(formData.get("contentType") ?? "recording");
     const date = String(formData.get("date") ?? "").trim();
-    const description = String(formData.get("description") ?? "").trim();
 
     const speaker = String(formData.get("speaker") ?? "").trim();
     const series = String(formData.get("series") ?? "").trim();
-    const scripture = String(formData.get("scripture") ?? "").trim();
-    const duration = String(formData.get("duration") ?? "").trim();
-    const typedResourceUrl = String(formData.get("resourceUrl") ?? "").trim();
-    const uploadedResourceUrl = await saveUploadedResourceFile(
-        formData.get("resourceFile")
-    );
-    const resourceUrl = uploadedResourceUrl ?? typedResourceUrl;
+    const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
     const contentBody = String(formData.get("contentBody") ?? "").trim();
+    const description =
+        contentBody.length > 120
+            ? `${contentBody.slice(0, 120)}...`
+            : contentBody;
 
     if (!id) return;
 
-    const isComplete = Boolean(title && contentType && date && description);
+    const existingContent = await prisma.content.findUnique({
+        where: { id },
+        select: {
+            publishedAt: true,
+        },
+    });
+
+    if (!existingContent) return;
+
+    const isComplete = Boolean(title && contentType && date && contentBody);
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
+    const speakerRecord = speaker
+        ? await prisma.speaker.upsert({
+            where: {
+                nameKey: normalizeKey(speaker),
+            },
+            update: {
+                name: speaker,
+                deletedAt: null,
+            },
+            create: {
+                name: speaker,
+                nameKey: normalizeKey(speaker),
+            },
+        })
+        : null;
+
+    const seriesRecord = series
+        ? await prisma.series.upsert({
+            where: {
+                titleKey: normalizeKey(series),
+            },
+            update: {
+                title: series,
+                deletedAt: null,
+            },
+            create: {
+                title: series,
+                titleKey: normalizeKey(series),
+            },
+        })
+        : null;
 
     await prisma.content.update({
         where: { id },
@@ -109,19 +161,26 @@ async function updateContent(formData: FormData) {
             status: nextStatus,
 
             date: date || getTodayDate(),
-            description: description || "暂无简介",
+            description: description || "暂无内容",
 
             speaker: speaker || null,
             series: series || null,
-            scripture: scripture || null,
-            duration: duration || null,
+            speakerId: speakerRecord?.id ?? null,
+            seriesId: seriesRecord?.id ?? null,
             resourceUrl: resourceUrl || null,
             contentBody: contentBody || null,
 
             tagsText: toJsonArrayText(formData.get("tags")),
-            searchKeywordsText: toJsonArrayText(formData.get("searchKeywords")),
+            searchKeywordsText: JSON.stringify(
+                [title, speaker, series]
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            ),
 
-            publishedAt: nextStatus === "published" ? new Date() : null,
+            publishedAt:
+                nextStatus === "published"
+                    ? existingContent.publishedAt ?? new Date()
+                    : null,
             archivedAt: null,
         },
     });
@@ -173,7 +232,7 @@ export default async function EditContentPage({ params }: Props) {
                 <input type="hidden" name="id" value={content.id} />
 
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    发布需要填写：标题、内容类型、日期、内容简介。没有填写完整时，系统会继续保存为草稿。
+                    发布需要填写：标题、内容类型、日期、主要内容。其他信息可以根据需要补充；未填写完整时会保存为草稿。
                 </div>
 
                 <section>
@@ -233,16 +292,22 @@ export default async function EditContentPage({ params }: Props) {
 
                     <div className="mt-5 sm:mt-6">
                         <label className="mb-2 block text-sm font-medium text-stone-700">
-                            内容简介 <span className="text-red-500">*</span>
+                            主要内容 <span className="text-red-500">*</span>
                         </label>
+
                         <textarea
                             suppressHydrationWarning
-                            name="description"
-                            rows={4}
-                            defaultValue={content.description}
-                            placeholder="简单介绍这篇内容的主题和帮助。"
+                            name="contentBody"
+                            rows={10}
+                            required
+                            defaultValue={content.contentBody ?? content.description ?? ""}
+                            placeholder="填写文章正文、讲道整理、学习内容、资料说明或相关文字。"
                             className={textareaClass}
                         />
+
+                        <p className="mt-2 text-xs leading-6 text-stone-400">
+                            主要内容是正式发布的必填项目，也会用于自动生成内容摘要。
+                        </p>
                     </div>
                 </section>
 
@@ -283,64 +348,12 @@ export default async function EditContentPage({ params }: Props) {
                             />
                         </div>
 
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                经文 / 来源
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="scripture"
-                                type="text"
-                                defaultValue={content.scripture ?? ""}
-                                placeholder="例如：诗篇 46:10"
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                时长
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="duration"
-                                type="text"
-                                defaultValue={content.duration ?? ""}
-                                placeholder="例如：42 分钟"
-                                className={inputClass}
-                            />
-                        </div>
                     </div>
-
+                    <AudioBlobUploadField
+                        inputClass={inputClass}
+                        initialResourceUrl={content.resourceUrl ?? ""}
+                    />
                     <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                资源链接
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="resourceUrl"
-                                type="text"
-                                defaultValue={content.resourceUrl ?? ""}
-                                placeholder="音频、图片、文件或外部链接地址"
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                资源链接
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="resourceUrl"
-                                type="text"
-                                defaultValue={content.resourceUrl ?? ""}
-                                placeholder="音频、图片、文件或外部链接地址"
-                                className={inputClass}
-                            />
-                        </div>
-
                         <div>
                             <label className="mb-2 block text-sm font-medium text-stone-700">
                                 标签
@@ -352,37 +365,6 @@ export default async function EditContentPage({ params }: Props) {
                                 defaultValue={parseTextArray(content.tagsText)}
                                 placeholder="用逗号分隔，例如：安静，等候，信靠"
                                 className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                搜索关键词
-                            </label>
-                            <input
-                                suppressHydrationWarning
-                                name="searchKeywords"
-                                type="text"
-                                defaultValue={parseTextArray(content.searchKeywordsText)}
-                                placeholder="例如：链接，音频，PDF，图片，报告"
-                                className={inputClass}
-                            />
-                            <p className="mt-2 text-xs leading-6 text-stone-400">
-                                这些词不会直接显示给普通用户，但会帮助搜索锁定内容。
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
-                                正文内容
-                            </label>
-                            <textarea
-                                suppressHydrationWarning
-                                name="contentBody"
-                                rows={8}
-                                defaultValue={content.contentBody ?? ""}
-                                placeholder="可以填写文章正文、讲道整理、学习问题或补充说明。"
-                                className={textareaClass}
                             />
                         </div>
                     </div>
