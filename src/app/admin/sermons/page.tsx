@@ -53,9 +53,9 @@ function formatDateShort(date: string | Date | null) {
 
   const d = new Date(date);
 
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -315,8 +315,8 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             <Link
               href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=all`}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === "all"
-                  ? "border-amber-700 bg-amber-700 text-white"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                ? "border-amber-700 bg-amber-700 text-white"
+                : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
                 }`}
             >
               全部系列
@@ -327,8 +327,8 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
                 key={series.id}
                 href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=${series.id}`}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === series.id
-                    ? "border-amber-700 bg-amber-700 text-white"
-                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                  ? "border-amber-700 bg-amber-700 text-white"
+                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
                   }`}
               >
                 {series.title}
