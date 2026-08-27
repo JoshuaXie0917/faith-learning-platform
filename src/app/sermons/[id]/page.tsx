@@ -137,12 +137,14 @@ export default async function SermonDetailPage({ params }: Props) {
         </p>
 
         <dl className="mb-6 grid gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm sm:mb-8 sm:grid-cols-2 sm:p-5">
-          <div>
-            <dt className="text-stone-400">作者 / 讲员</dt>
-            <dd className="mt-1 break-words font-medium text-stone-800">
-              {content.speaker ?? "未填写"}
-            </dd>
-          </div>
+          {content.speaker?.trim() && (
+            <div>
+              <dt className="text-stone-400">作者 / 讲员</dt>
+              <dd className="mt-1 break-words font-medium text-stone-800">
+                {content.speaker}
+              </dd>
+            </div>
+          )}
 
           <div>
             <dt className="text-stone-400">日期</dt>
@@ -158,12 +160,14 @@ export default async function SermonDetailPage({ params }: Props) {
             </dd>
           </div>
 
-          <div>
-            <dt className="text-stone-400">经文 / 来源</dt>
-            <dd className="mt-1 break-words font-medium text-stone-800">
-              {content.scripture ?? "未填写"}
-            </dd>
-          </div>
+          {content.scripture?.trim() && (
+            <div>
+              <dt className="text-stone-400">经文 / 来源</dt>
+              <dd className="mt-1 break-words font-medium text-stone-800">
+                {content.scripture}
+              </dd>
+            </div>
+          )}
         </dl>
 
         {tags.length > 0 && (
