@@ -11,6 +11,8 @@ type Props = {
   searchParams: Promise<{
     status?: string;
     type?: string;
+    speaker?: string;
+    series?: string;
   }>;
 };
 
@@ -106,65 +108,102 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
   const activeStatus = params.status ?? "all";
   const activeType = params.type ?? "all";
+  const activeSpeakerId = params.speaker ?? "all";
+  const activeSeriesId = params.series ?? "all";
 
   const where = {
     deletedAt: null,
     ...(activeStatus !== "all" ? { status: activeStatus } : {}),
     ...(activeType !== "all" ? { contentType: activeType } : {}),
+    ...(activeSpeakerId !== "all" ? { speakerId: activeSpeakerId } : {}),
+    ...(activeSeriesId !== "all" ? { seriesId: activeSeriesId } : {}),
   };
 
-  const [contents, totalCount, publishedCount, draftCount, archivedCount] =
-    await Promise.all([
-      prisma.content.findMany({
-        where,
-        orderBy: {
-          updatedAt: "desc",
-        },
-        select: {
-          id: true,
-          title: true,
-          contentType: true,
-          status: true,
-          speaker: true,
-          date: true,
-          duration: true,
-          resourceUrl: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              reads: true,
-            },
+  const [
+    contents,
+    totalCount,
+    publishedCount,
+    draftCount,
+    archivedCount,
+    speakers,
+    seriesList,
+  ] = await Promise.all([
+    prisma.content.findMany({
+      where,
+      orderBy: {
+        updatedAt: "desc",
+      },
+      select: {
+        id: true,
+        title: true,
+        contentType: true,
+        status: true,
+        speaker: true,
+        date: true,
+        duration: true,
+        resourceUrl: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            reads: true,
           },
         },
-      }),
+      },
+    }),
 
-      prisma.content.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
+    prisma.content.count({
+      where: {
+        deletedAt: null,
+      },
+    }),
 
-      prisma.content.count({
-        where: {
-          status: "published",
-          deletedAt: null,
-        },
-      }),
+    prisma.content.count({
+      where: {
+        status: "published",
+        deletedAt: null,
+      },
+    }),
 
-      prisma.content.count({
-        where: {
-          status: "draft",
-          deletedAt: null,
-        },
-      }),
+    prisma.content.count({
+      where: {
+        status: "draft",
+        deletedAt: null,
+      },
+    }),
 
-      prisma.content.count({
-        where: {
-          status: "archived",
-          deletedAt: null,
-        },
-      }),
-    ]);
+    prisma.content.count({
+      where: {
+        status: "archived",
+        deletedAt: null,
+      },
+    }),
+
+    prisma.speaker.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    }),
+
+    prisma.series.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: {
+        title: "asc",
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    }),
+  ]);
 
   const summaryStats = [
     { label: "全部内容", value: totalCount },
@@ -209,11 +248,10 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             {statusFilters.map((filter) => (
               <Link
-                key={filter.value}
-                href={`/admin/sermons?status=${filter.value}&type=${activeType}`}
+                key={filter.value} href={`/admin/sermons?status=${filter.value}&type=${activeType}&speaker=${activeSpeakerId}&series=${activeSeriesId}`}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeStatus === filter.value
-                    ? "border-stone-900 bg-stone-900 text-white"
-                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                  ? "border-stone-900 bg-stone-900 text-white"
+                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
                   }`}
               >
                 {filter.label}
@@ -229,13 +267,71 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             {typeFilters.map((filter) => (
               <Link
                 key={filter.value}
-                href={`/admin/sermons?status=${activeStatus}&type=${filter.value}`}
+                href={`/admin/sermons?status=${activeStatus}&type=${filter.value}&speaker=${activeSpeakerId}&series=${activeSeriesId}`}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
+                  ? "border-amber-700 bg-amber-700 text-white"
+                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                  }`}
+              >
+                {filter.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-stone-700">讲员</p>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+            <Link
+              href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=all&series=${activeSeriesId}`}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === "all"
+                ? "border-stone-900 bg-stone-900 text-white"
+                : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                }`}
+            >
+              全部讲员
+            </Link>
+
+            {speakers.map((speaker) => (
+              <Link
+                key={speaker.id}
+                href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${speaker.id}&series=${activeSeriesId}`}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === speaker.id
+                  ? "border-stone-900 bg-stone-900 text-white"
+                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                  }`}
+              >
+                {speaker.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-stone-700">系列</p>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+            <Link
+              href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=all`}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === "all"
+                  ? "border-amber-700 bg-amber-700 text-white"
+                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                }`}
+            >
+              全部系列
+            </Link>
+
+            {seriesList.map((series) => (
+              <Link
+                key={series.id}
+                href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=${series.id}`}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === series.id
                     ? "border-amber-700 bg-amber-700 text-white"
                     : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
                   }`}
               >
-                {filter.label}
+                {series.title}
               </Link>
             ))}
           </div>
