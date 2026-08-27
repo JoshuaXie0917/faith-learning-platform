@@ -15,8 +15,10 @@ type PublicContent = {
   contentType: string;
   contentTypeLabel: string;
   speaker: string | null;
+  speakerId: string | null;
   scripture: string | null;
   series: string | null;
+  seriesId: string | null;
   date: string;
   rawDate: string;
   duration: string | null;
@@ -158,6 +160,8 @@ function getOrCreateVisitorKey() {
 export default function SermonsPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [activeType, setActiveType] = useState("all");
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState("all");
+  const [selectedSeriesId, setSelectedSeriesId] = useState("all");
   const [shares, setShares] = useState<DisplayShare[]>([]);
   const [favoriteShareIds, setFavoriteShareIds] = useState<string[]>([]);
   const [favoriteSermonIds, setFavoriteSermonIds] = useState<string[]>([]);
@@ -254,12 +258,56 @@ export default function SermonsPage() {
     ];
   }, [visibleSermons]);
 
+  const speakerOptions = useMemo(() => {
+    const speakers = new Map<string, string>();
+
+    visibleSermons.forEach((sermon) => {
+      if (sermon.speakerId && sermon.speaker) {
+        speakers.set(sermon.speakerId, sermon.speaker);
+      }
+    });
+
+    return Array.from(speakers, ([id, name]) => ({
+      id,
+      name,
+    }));
+  }, [visibleSermons]);
+
+  const seriesOptions = useMemo(() => {
+    const series = new Map<string, string>();
+
+    visibleSermons.forEach((sermon) => {
+      if (sermon.seriesId && sermon.series) {
+        series.set(sermon.seriesId, sermon.series);
+      }
+    });
+
+    return Array.from(series, ([id, name]) => ({
+      id,
+      name,
+    }));
+  }, [visibleSermons]);
+
   const filteredSermons = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
     return visibleSermons
       .filter((sermon) => {
         if (activeType !== "all" && sermon.contentType !== activeType) {
+          return false;
+        }
+
+        if (
+          selectedSpeakerId !== "all" &&
+          sermon.speakerId !== selectedSpeakerId
+        ) {
+          return false;
+        }
+
+        if (
+          selectedSeriesId !== "all" &&
+          sermon.seriesId !== selectedSeriesId
+        ) {
           return false;
         }
 
@@ -288,7 +336,11 @@ export default function SermonsPage() {
         (a, b) =>
           new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
       );
-  }, [activeType, searchKeyword, visibleSermons]);
+  }, [activeType,
+    searchKeyword,
+    selectedSpeakerId,
+    selectedSeriesId,
+    visibleSermons,]);
 
   const allShares = shares.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -426,308 +478,352 @@ export default function SermonsPage() {
   }
 
   return (
-      <PageContainer>
-        <PageHeader
-          title="真理集录"
-          subtitle="整理录音、文章、文件、音乐音频、图片与链接，帮助大家持续学习和回顾。"
-          action={
-            <Link
-              href="/sermons/share"
-              className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
-            >
-              发布分享
-            </Link>
-          }
-        />
+    <PageContainer>
+      <PageHeader
+        title="真理集录"
+        subtitle="整理录音、文章、文件、音乐音频、图片与链接，帮助大家持续学习和回顾。"
+        action={
+          <Link
+            href="/sermons/share"
+            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+          >
+            发布分享
+          </Link>
+        }
+      />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
-          <main className="min-w-0 space-y-5 sm:space-y-6">
-            <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-              <label className="mb-2 block text-sm font-medium text-stone-700">
-                搜索正式内容
-              </label>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
+        <main className="min-w-0 space-y-5 sm:space-y-6">
+          <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+            <label className="mb-2 block text-sm font-medium text-stone-700">
+              搜索正式内容
+            </label>
 
-              <input
-                suppressHydrationWarning
-                type="text"
-                value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-                placeholder="搜索标题、讲员、经文、链接、音频、图片、文件等"
-                className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600"
-              />
+            <input
+              suppressHydrationWarning
+              type="text"
+              value={searchKeyword}
+              onChange={(event) => setSearchKeyword(event.target.value)}
+              placeholder="搜索标题、讲员、经文、链接、音频、图片、文件等"
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+            />
 
-              <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {typeFilters.map((filter) => (
-                  <button
-                    key={filter.value}
-                    type="button"
-                    onClick={() => setActiveType(filter.value)}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
-                      ? "border-stone-900 bg-stone-900 text-white"
-                      : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                      }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {isLoading ? (
-              <div className="rounded-3xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
-                正在加载内容……
-              </div>
-            ) : filteredSermons.length === 0 ? (
-              <div className="rounded-3xl border border-amber-100 bg-amber-50 p-5 text-center shadow-sm sm:p-8">
-                <h2 className="text-lg font-semibold text-stone-900 sm:text-xl">
-                  抱歉，没有找到匹配的内容
-                </h2>
-
-                <p className="mt-3 text-sm leading-7 text-stone-600">
-                  可以尝试更换关键词，例如标题、讲员、经文、系列、链接、音频、图片、文件等。
-                </p>
-
+            <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+              {typeFilters.map((filter) => (
                 <button
+                  key={filter.value}
                   type="button"
-                  onClick={() => {
-                    setSearchKeyword("");
-                    setActiveType("all");
-                  }}
-                  className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                  onClick={() => setActiveType(filter.value)}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
+                    ? "border-stone-900 bg-stone-900 text-white"
+                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+                    }`}
                 >
-                  清空搜索
+                  {filter.label}
                 </button>
+              ))}
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">
+                  讲员
+                </label>
+
+                <select
+                  value={selectedSpeakerId}
+                  onChange={(event) => setSelectedSpeakerId(event.target.value)}
+                  className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                >
+                  <option value="all">全部讲员</option>
+
+                  {speakerOptions.map((speaker) => (
+                    <option key={speaker.id} value={speaker.id}>
+                      {speaker.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <section className="space-y-4">
-                {filteredSermons.map((sermon) => {
-                  const isFavorite = favoriteSermonIds.includes(sermon.id);
-                  const isRead = readContentIds.includes(sermon.id);
 
-                  return (
-                    <article
-                      key={sermon.id}
-                      className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
-                    >
-                      <Link href={`/sermons/${sermon.id}`} className="block">
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
-                            {sermon.contentTypeLabel ||
-                              getContentTypeLabel(sermon.contentType)}
-                          </span>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">
+                  系列
+                </label>
 
-                          <span className="text-xs text-stone-400">
-                            {sermon.date}
-                          </span>
+                <select
+                  value={selectedSeriesId}
+                  onChange={(event) => setSelectedSeriesId(event.target.value)}
+                  className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                >
+                  <option value="all">全部系列</option>
 
-                          {sermon.duration && (
-                            <span className="text-xs text-stone-400">
-                              {sermon.duration}
-                            </span>
-                          )}
-                        </div>
+                  {seriesOptions.map((series) => (
+                    <option key={series.id} value={series.id}>
+                      {series.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
 
-                        <h2 className="break-words text-lg font-semibold leading-8 text-stone-900 sm:text-xl">
-                          {sermon.title}
-                        </h2>
-
-                        <p className="mt-3 line-clamp-3 text-sm leading-7 text-stone-600 sm:line-clamp-2">
-                          {sermon.description}
-                        </p>
-
-                        {sermon.tags.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {sermon.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </Link>
-
-                      <div className="mt-5 flex flex-col gap-4 border-t border-stone-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="text-xs leading-6 text-stone-400">
-                          {[sermon.speaker, sermon.scripture]
-                            .filter(Boolean)
-                            .join(" · ") || "学习内容"}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => toggleFavoriteSermon(sermon.id)}
-                            className={`rounded-full px-3 py-2 text-xs transition ${isFavorite
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                              }`}
-                          >
-                            {isFavorite ? "已收藏" : "收藏"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleReadContent(sermon.id)}
-                            className={`rounded-full px-3 py-2 text-xs transition ${isRead
-                              ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                              }`}
-                          >
-                            {isRead ? "已读" : "标记已读"}
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </section>
-            )}
-          </main>
-
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-stone-900">
-                弟兄姊妹分享
+          {isLoading ? (
+            <div className="rounded-3xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
+              正在加载内容……
+            </div>
+          ) : filteredSermons.length === 0 ? (
+            <div className="rounded-3xl border border-amber-100 bg-amber-50 p-5 text-center shadow-sm sm:p-8">
+              <h2 className="text-lg font-semibold text-stone-900 sm:text-xl">
+                抱歉，没有找到匹配的内容
               </h2>
 
-              <p className="mt-2 text-sm leading-7 text-stone-500">
-                分享保存 7 天；被收藏的分享不会自动清理。正式内容和分享收藏总数最多 30 个。
+              <p className="mt-3 text-sm leading-7 text-stone-600">
+                可以尝试更换关键词，例如标题、讲员、经文、系列、链接、音频、图片、文件等。
               </p>
 
-              <Link
-                href="/sermons/share"
-                className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchKeyword("");
+                  setActiveType("all");
+                  setSelectedSpeakerId("all");
+                  setSelectedSeriesId("all");
+                }}
+                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
               >
-                写一条分享
-              </Link>
+                清空搜索
+              </button>
+            </div>
+          ) : (
+            <section className="space-y-4">
+              {filteredSermons.map((sermon) => {
+                const isFavorite = favoriteSermonIds.includes(sermon.id);
+                const isRead = readContentIds.includes(sermon.id);
+
+                return (
+                  <article
+                    key={sermon.id}
+                    className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
+                  >
+                    <Link href={`/sermons/${sermon.id}`} className="block">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
+                          {sermon.contentTypeLabel ||
+                            getContentTypeLabel(sermon.contentType)}
+                        </span>
+
+                        <span className="text-xs text-stone-400">
+                          {sermon.date}
+                        </span>
+
+                        {sermon.duration && (
+                          <span className="text-xs text-stone-400">
+                            {sermon.duration}
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="break-words text-lg font-semibold leading-8 text-stone-900 sm:text-xl">
+                        {sermon.title}
+                      </h2>
+
+                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-stone-600 sm:line-clamp-2">
+                        {sermon.description}
+                      </p>
+
+                      {sermon.tags.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {sermon.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Link>
+
+                    <div className="mt-5 flex flex-col gap-4 border-t border-stone-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-xs leading-6 text-stone-400">
+                        {[sermon.speaker, sermon.scripture]
+                          .filter(Boolean)
+                          .join(" · ") || "学习内容"}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => toggleFavoriteSermon(sermon.id)}
+                          className={`rounded-full px-3 py-2 text-xs transition ${isFavorite
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                            }`}
+                        >
+                          {isFavorite ? "已收藏" : "收藏"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleReadContent(sermon.id)}
+                          className={`rounded-full px-3 py-2 text-xs transition ${isRead
+                            ? "bg-green-100 text-green-800 hover:bg-green-200"
+                            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                            }`}
+                        >
+                          {isRead ? "已读" : "标记已读"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </section>
+          )}
+        </main>
 
-            <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-              <div className="mb-4 flex rounded-full bg-stone-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setSidePanel("shares")}
-                  className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "shares"
-                    ? "bg-white text-stone-900 shadow-sm"
-                    : "text-stone-500"
-                    }`}
-                >
-                  最近分享
-                </button>
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="text-lg font-semibold text-stone-900">
+              弟兄姊妹分享
+            </h2>
 
-                <button
-                  type="button"
-                  onClick={() => setSidePanel("favorites")}
-                  className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "favorites"
-                    ? "bg-white text-stone-900 shadow-sm"
-                    : "text-stone-500"
-                    }`}
-                >
-                  我的收藏
-                </button>
+            <p className="mt-2 text-sm leading-7 text-stone-500">
+              分享保存 7 天；被收藏的分享不会自动清理。正式内容和分享收藏总数最多 30 个。
+            </p>
+
+            <Link
+              href="/sermons/share"
+              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+            >
+              写一条分享
+            </Link>
+          </section>
+
+          <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="mb-4 flex rounded-full bg-stone-100 p-1">
+              <button
+                type="button"
+                onClick={() => setSidePanel("shares")}
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "shares"
+                  ? "bg-white text-stone-900 shadow-sm"
+                  : "text-stone-500"
+                  }`}
+              >
+                最近分享
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSidePanel("favorites")}
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "favorites"
+                  ? "bg-white text-stone-900 shadow-sm"
+                  : "text-stone-500"
+                  }`}
+              >
+                我的收藏
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">
+              收藏总数：{totalFavoriteCount} / {MAX_TOTAL_FAVORITES}
+            </div>
+
+            {favoriteMessage && (
+              <div className="mb-4 rounded-2xl bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+                {favoriteMessage}
               </div>
+            )}
 
-              <div className="mb-4 rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">
-                收藏总数：{totalFavoriteCount} / {MAX_TOTAL_FAVORITES}
-              </div>
+            {sidePanel === "shares" ? (
+              <div className="space-y-3">
+                {allShares.length === 0 ? (
+                  <p className="text-sm text-stone-500">暂无公开分享。</p>
+                ) : (
+                  allShares.slice(0, 8).map((share) => {
+                    const isFavorite = share.isFavorite;
 
-              {favoriteMessage && (
-                <div className="mb-4 rounded-2xl bg-amber-50 p-3 text-sm leading-6 text-amber-800">
-                  {favoriteMessage}
-                </div>
-              )}
-
-              {sidePanel === "shares" ? (
-                <div className="space-y-3">
-                  {allShares.length === 0 ? (
-                    <p className="text-sm text-stone-500">暂无公开分享。</p>
-                  ) : (
-                    allShares.slice(0, 8).map((share) => {
-                      const isFavorite = share.isFavorite;
-
-                      return (
-                        <article
-                          key={share.id}
-                          className="rounded-2xl border border-stone-100 bg-stone-50 p-4"
-                        >
-                          <Link href={share.href} className="block">
-                            <p className="line-clamp-2 font-medium leading-6 text-stone-900">
-                              {share.title}
-                            </p>
-
-                            <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
-                              {share.content}
-                            </p>
-
-                            <p className="mt-3 text-xs text-stone-400">
-                              {share.name} · {formatDate(share.createdAt)}
-                            </p>
-                          </Link>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleFavoriteShare(share.id)}
-                            className={`mt-3 rounded-full px-3 py-1.5 text-xs transition ${isFavorite
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-white text-stone-600 hover:bg-stone-100"
-                              }`}
-                          >
-                            {isFavorite ? "已收藏" : "收藏分享"}
-                          </button>
-                        </article>
-                      );
-                    })
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {favoriteSermons.length === 0 && favoriteShares.length === 0 ? (
-                    <p className="text-sm leading-7 text-stone-500">
-                      你还没有收藏内容。可以收藏正式内容，也可以收藏弟兄姊妹的分享。
-                    </p>
-                  ) : (
-                    <>
-                      {favoriteSermons.map((sermon) => (
-                        <Link
-                          key={sermon.id}
-                          href={`/sermons/${sermon.id}`}
-                          className="block rounded-2xl border border-stone-100 bg-stone-50 p-4 transition hover:bg-stone-100"
-                        >
-                          <p className="line-clamp-2 font-medium leading-6 text-stone-900">
-                            {sermon.title}
-                          </p>
-
-                          <p className="mt-2 text-xs text-stone-400">
-                            正式内容 · {sermon.date}
-                          </p>
-                        </Link>
-                      ))}
-
-                      {favoriteShares.map((share) => (
-                        <Link
-                          key={share.id}
-                          href={share.href}
-                          className="block rounded-2xl border border-stone-100 bg-stone-50 p-4 transition hover:bg-stone-100"
-                        >
+                    return (
+                      <article
+                        key={share.id}
+                        className="rounded-2xl border border-stone-100 bg-stone-50 p-4"
+                      >
+                        <Link href={share.href} className="block">
                           <p className="line-clamp-2 font-medium leading-6 text-stone-900">
                             {share.title}
                           </p>
 
-                          <p className="mt-2 text-xs text-stone-400">
-                            分享 · {share.name}
+                          <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
+                            {share.content}
+                          </p>
+
+                          <p className="mt-3 text-xs text-stone-400">
+                            {share.name} · {formatDate(share.createdAt)}
                           </p>
                         </Link>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </section>
-          </aside>
-        </div>
-      </PageContainer>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleFavoriteShare(share.id)}
+                          className={`mt-3 rounded-full px-3 py-1.5 text-xs transition ${isFavorite
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-white text-stone-600 hover:bg-stone-100"
+                            }`}
+                        >
+                          {isFavorite ? "已收藏" : "收藏分享"}
+                        </button>
+                      </article>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {favoriteSermons.length === 0 && favoriteShares.length === 0 ? (
+                  <p className="text-sm leading-7 text-stone-500">
+                    你还没有收藏内容。可以收藏正式内容，也可以收藏弟兄姊妹的分享。
+                  </p>
+                ) : (
+                  <>
+                    {favoriteSermons.map((sermon) => (
+                      <Link
+                        key={sermon.id}
+                        href={`/sermons/${sermon.id}`}
+                        className="block rounded-2xl border border-stone-100 bg-stone-50 p-4 transition hover:bg-stone-100"
+                      >
+                        <p className="line-clamp-2 font-medium leading-6 text-stone-900">
+                          {sermon.title}
+                        </p>
+
+                        <p className="mt-2 text-xs text-stone-400">
+                          正式内容 · {sermon.date}
+                        </p>
+                      </Link>
+                    ))}
+
+                    {favoriteShares.map((share) => (
+                      <Link
+                        key={share.id}
+                        href={share.href}
+                        className="block rounded-2xl border border-stone-100 bg-stone-50 p-4 transition hover:bg-stone-100"
+                      >
+                        <p className="line-clamp-2 font-medium leading-6 text-stone-900">
+                          {share.title}
+                        </p>
+
+                        <p className="mt-2 text-xs text-stone-400">
+                          分享 · {share.name}
+                        </p>
+                      </Link>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
+    </PageContainer>
   );
 }
