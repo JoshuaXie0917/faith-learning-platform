@@ -18,17 +18,19 @@ export function AdminSidebar() {
 
         <nav className="space-y-1">
           {adminNav.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/admin"
+                ? pathname === "/admin"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
-                  isActive
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive
                     ? "bg-amber-100 text-amber-800"
                     : "text-stone-500 hover:bg-stone-100 hover:text-stone-800"
-                }`}
+                  }`}
               >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>

@@ -22,11 +22,11 @@ export function Navbar() {
   }, [pathname]);
 
   function isActive(href: string) {
-    if (href === "/") {
-      return pathname === "/";
+    if (href === "/" || href === "/admin") {
+      return pathname === href;
     }
 
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
   }
 
   function handleLogout() {
@@ -69,11 +69,10 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-full px-4 py-2 text-sm transition ${
-                isActive(link.href)
+              className={`rounded-full px-4 py-2 text-sm transition ${isActive(link.href)
                   ? "bg-stone-900 text-white"
                   : "text-stone-600 hover:bg-white hover:text-stone-900"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
@@ -84,11 +83,10 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-full px-4 py-2 text-sm transition ${
-                  isActive(link.href)
+                className={`rounded-full px-4 py-2 text-sm transition ${isActive(link.href)
                     ? "bg-amber-700 text-white"
                     : "text-stone-600 hover:bg-white hover:text-stone-900"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -129,19 +127,16 @@ export function Navbar() {
         >
           <span className="flex flex-col gap-1.5">
             <span
-              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${
-                isMenuOpen ? "translate-y-2 rotate-45" : ""
-              }`}
+              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${isMenuOpen ? "translate-y-2 rotate-45" : ""
+                }`}
             />
             <span
-              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${
-                isMenuOpen ? "opacity-0" : ""
-              }`}
+              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${isMenuOpen ? "opacity-0" : ""
+                }`}
             />
             <span
-              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${
-                isMenuOpen ? "-translate-y-2 -rotate-45" : ""
-              }`}
+              className={`block h-0.5 w-5 rounded-full bg-stone-700 transition ${isMenuOpen ? "-translate-y-2 -rotate-45" : ""
+                }`}
             />
           </span>
         </button>
@@ -155,11 +150,10 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsMenuOpen(false)}
-                className={`block rounded-2xl px-4 py-3 text-base transition ${
-                  isActive(link.href)
+                className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
                     ? "bg-stone-900 text-white"
                     : "bg-white text-stone-700"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -176,11 +170,10 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`block rounded-2xl px-4 py-3 text-base transition ${
-                      isActive(link.href)
+                    className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
                         ? "bg-amber-700 text-white"
                         : "bg-white text-stone-700"
-                    }`}
+                      }`}
                   >
                     {link.label}
                   </Link>
