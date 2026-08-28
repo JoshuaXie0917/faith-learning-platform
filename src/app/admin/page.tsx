@@ -43,10 +43,8 @@ export default async function AdminPage() {
     publishedCount,
     draftCount,
     archivedCount,
-    userCount,
     mainContents,
     recentContents,
-    users,
   ] = await Promise.all([
     prisma.content.count({
       where: {
@@ -71,16 +69,6 @@ export default async function AdminPage() {
     prisma.content.count({
       where: {
         status: "archived",
-        deletedAt: null,
-      },
-    }),
-
-    prisma.user.count({
-      where: {
-        role: "member",
-        nameKey: {
-          startsWith: "member-",
-        },
         deletedAt: null,
       },
     }),
@@ -128,27 +116,6 @@ export default async function AdminPage() {
         },
       },
     }),
-
-    prisma.user.findMany({
-      where: {
-        role: "member",
-        nameKey: {
-          startsWith: "member-",
-        },
-        deletedAt: null,
-      },
-      orderBy: {
-        lastSeenAt: "desc",
-      },
-      take: 10,
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        lastSeenAt: true,
-      },
-    }),
   ]);
 
   const summaryStats = [
@@ -156,14 +123,13 @@ export default async function AdminPage() {
     { label: "已发布", value: publishedCount },
     { label: "草稿", value: draftCount },
     { label: "已下架", value: archivedCount },
-    { label: "活跃成员", value: userCount },
   ];
 
   return (
     <PageContainer>
       <PageHeader
         title="后台总览"
-        subtitle="查看内容数量、每篇内容已读数量、用户数量和最近内容。"
+        subtitle="查看内容数量、每篇内容已读数量和最近内容。"
         action={
           <Link
             href="/admin/sermons"
@@ -173,8 +139,7 @@ export default async function AdminPage() {
           </Link>
         }
       />
-
-      <section className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <section className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {summaryStats.map((item) => (
           <div
             key={item.label}
@@ -239,8 +204,8 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <section className="lg:col-span-2">
+      <div>
+        <section>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 sm:text-xl">
@@ -309,57 +274,6 @@ export default async function AdminPage() {
             )}
           </div>
         </section>
-
-        <aside>
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-stone-900 sm:text-xl">
-              成员列表
-            </h2>
-
-            <p className="mt-1 text-sm text-stone-500">
-              这里只显示输入姓名进入平台的普通成员。同名成员会因为唯一 id 不同而被分别统计。
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {users.length === 0 ? (
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm leading-7 text-stone-600">
-                目前还没有成员记录。成员在 /member 输入姓名后，会显示在这里。
-              </div>
-            ) : (
-              users.map((user) => (
-                <div
-                  key={user.id}
-                  className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-stone-900">
-                        {user.name}
-                      </p>
-
-                      <p className="mt-1 break-all text-xs text-stone-400">
-                        用户 ID：{user.id}
-                      </p>
-
-                      <p className="mt-1 text-xs text-stone-400">
-                        注册时间：{formatDate(user.createdAt)}
-                      </p>
-
-                      <p className="mt-1 text-xs text-stone-400">
-                        最后访问：{formatDate(user.lastSeenAt)}
-                      </p>
-                    </div>
-
-                    <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
-                      {user.role === "admin" ? "管理员" : "成员"}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </aside>
       </div>
     </PageContainer>
   );
