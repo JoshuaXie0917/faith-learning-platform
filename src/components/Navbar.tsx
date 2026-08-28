@@ -48,6 +48,7 @@ export function Navbar() {
   const adminLinks = [
     { href: "/admin", label: "管理后台" },
     { href: "/admin/sermons", label: "内容管理" },
+    { href: "/admin/taxonomy", label: "讲员与系列" },
   ];
 
   return (
@@ -70,8 +71,8 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               className={`rounded-full px-4 py-2 text-sm transition ${isActive(link.href)
-                  ? "bg-stone-900 text-white"
-                  : "text-stone-600 hover:bg-white hover:text-stone-900"
+                ? "bg-stone-900 text-white"
+                : "text-stone-600 hover:bg-white hover:text-stone-900"
                 }`}
             >
               {link.label}
@@ -84,8 +85,8 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={`rounded-full px-4 py-2 text-sm transition ${isActive(link.href)
-                    ? "bg-amber-700 text-white"
-                    : "text-stone-600 hover:bg-white hover:text-stone-900"
+                  ? "bg-amber-700 text-white"
+                  : "text-stone-600 hover:bg-white hover:text-stone-900"
                   }`}
               >
                 {link.label}
@@ -151,8 +152,8 @@ export function Navbar() {
                 href={link.href}
                 onClick={() => setIsMenuOpen(false)}
                 className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
-                    ? "bg-stone-900 text-white"
-                    : "bg-white text-stone-700"
+                  ? "bg-stone-900 text-white"
+                  : "bg-white text-stone-700"
                   }`}
               >
                 {link.label}
@@ -171,8 +172,8 @@ export function Navbar() {
                     href={link.href}
                     onClick={() => setIsMenuOpen(false)}
                     className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
-                        ? "bg-amber-700 text-white"
-                        : "bg-white text-stone-700"
+                      ? "bg-amber-700 text-white"
+                      : "bg-white text-stone-700"
                       }`}
                   >
                     {link.label}

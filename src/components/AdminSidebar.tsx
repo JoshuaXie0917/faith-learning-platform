@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const adminNav = [
   { href: "/admin", label: "后台总览", icon: "●" },
   { href: "/admin/sermons", label: "内容管理", icon: "◎" },
+  { href: "/admin/taxonomy", label: "讲员与系列", icon: "◇" },
 ];
 
 export function AdminSidebar() {
