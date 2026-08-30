@@ -36,6 +36,34 @@ async function createSpeaker(formData: FormData) {
 
     revalidatePath("/admin/taxonomy");
 }
+
+async function createSeries(formData: FormData) {
+    "use server";
+
+    const title = String(formData.get("title") ?? "").trim();
+
+    if (!title) {
+        return;
+    }
+
+    const titleKey = normalizeKey(title);
+
+    await prisma.series.upsert({
+        where: {
+            titleKey,
+        },
+        update: {
+            deletedAt: null,
+        },
+        create: {
+            title,
+            titleKey,
+        },
+    });
+
+    revalidatePath("/admin/taxonomy");
+}
+
 export default async function AdminTaxonomyPage() {
     const [speakers, seriesList] = await Promise.all([
         prisma.speaker.findMany({
@@ -145,6 +173,23 @@ export default async function AdminTaxonomyPage() {
                             当前共有 {seriesList.length} 个系列。
                         </p>
                     </div>
+
+                    <form action={createSeries} className="mb-5 flex flex-col gap-2 sm:flex-row">
+                        <input
+                            name="title"
+                            type="text"
+                            required
+                            placeholder="输入系列名称"
+                            className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400"
+                        />
+
+                        <button
+                            type="submit"
+                            className="rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                        >
+                            新增系列
+                        </button>
+                    </form>
 
                     <div className="space-y-3">
                         {seriesList.length === 0 ? (
