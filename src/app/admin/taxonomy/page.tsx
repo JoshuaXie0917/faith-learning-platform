@@ -1,10 +1,41 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function normalizeKey(value: string) {
+    return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+async function createSpeaker(formData: FormData) {
+    "use server";
+
+    const name = String(formData.get("name") ?? "").trim();
+
+    if (!name) {
+        return;
+    }
+
+    const nameKey = normalizeKey(name);
+
+    await prisma.speaker.upsert({
+        where: {
+            nameKey,
+        },
+        update: {
+            deletedAt: null,
+        },
+        create: {
+            name,
+            nameKey,
+        },
+    });
+
+    revalidatePath("/admin/taxonomy");
+}
 export default async function AdminTaxonomyPage() {
     const [speakers, seriesList] = await Promise.all([
         prisma.speaker.findMany({
@@ -65,6 +96,23 @@ export default async function AdminTaxonomyPage() {
                             当前共有 {speakers.length} 位讲员。
                         </p>
                     </div>
+
+                    <form action={createSpeaker} className="mb-5 flex flex-col gap-2 sm:flex-row">
+                        <input
+                            name="name"
+                            type="text"
+                            required
+                            placeholder="输入讲员姓名"
+                            className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400"
+                        />
+
+                        <button
+                            type="submit"
+                            className="rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                        >
+                            新增讲员
+                        </button>
+                    </form>
 
                     <div className="space-y-3">
                         {speakers.length === 0 ? (
