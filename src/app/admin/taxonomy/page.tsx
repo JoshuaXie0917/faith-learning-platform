@@ -64,6 +64,66 @@ async function createSeries(formData: FormData) {
     revalidatePath("/admin/taxonomy");
 }
 
+async function renameSpeaker(formData: FormData) {
+    "use server";
+
+    const id = String(formData.get("id") ?? "");
+    const name = String(formData.get("name") ?? "").trim();
+
+    if (!id || !name) {
+        return;
+    }
+
+    const nameKey = normalizeKey(name);
+
+    const speaker = await prisma.speaker.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            nameKey: true,
+        },
+    });
+
+    if (!speaker) {
+        return;
+    }
+
+    const conflictingSpeaker = await prisma.speaker.findUnique({
+        where: {
+            nameKey,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (conflictingSpeaker && conflictingSpeaker.id !== id) {
+        return;
+    }
+    await prisma.$transaction([
+        prisma.speaker.update({
+            where: { id },
+            data: {
+                name,
+                nameKey,
+            },
+        }),
+
+        prisma.content.updateMany({
+            where: {
+                speakerId: id,
+            },
+            data: {
+                speaker: name,
+            },
+        }),
+    ]);
+
+    revalidatePath("/admin/taxonomy");
+    revalidatePath("/admin/sermons");
+    revalidatePath("/sermons");
+}
+
 export default async function AdminTaxonomyPage() {
     const [speakers, seriesList] = await Promise.all([
         prisma.speaker.findMany({
@@ -151,15 +211,40 @@ export default async function AdminTaxonomyPage() {
                             speakers.map((speaker) => (
                                 <div
                                     key={speaker.id}
-                                    className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4"
+                                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
                                 >
-                                    <span className="font-medium text-stone-900">
-                                        {speaker.name}
-                                    </span>
+                                    <div className="mb-3 flex items-center justify-between gap-4">
+                                        <span className="font-medium text-stone-900">
+                                            {speaker.name}
+                                        </span>
 
-                                    <span className="shrink-0 text-sm text-stone-500">
-                                        {speaker.contents.length} 条内容
-                                    </span>
+                                        <span className="shrink-0 text-sm text-stone-500">
+                                            {speaker.contents.length} 条内容
+                                        </span>
+                                    </div>
+
+                                    <form action={renameSpeaker} className="flex flex-col gap-2 sm:flex-row">
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value={speaker.id}
+                                        />
+
+                                        <input
+                                            name="name"
+                                            type="text"
+                                            required
+                                            defaultValue={speaker.name}
+                                            className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-stone-400"
+                                        />
+
+                                        <button
+                                            type="submit"
+                                            className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
+                                        >
+                                            保存名称
+                                        </button>
+                                    </form>
                                 </div>
                             ))
                         )}
