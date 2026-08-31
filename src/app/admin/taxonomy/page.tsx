@@ -124,6 +124,67 @@ async function renameSpeaker(formData: FormData) {
     revalidatePath("/sermons");
 }
 
+async function renameSeries(formData: FormData) {
+    "use server";
+
+    const id = String(formData.get("id") ?? "");
+    const title = String(formData.get("title") ?? "").trim();
+
+    if (!id || !title) {
+        return;
+    }
+
+    const titleKey = normalizeKey(title);
+
+    const series = await prisma.series.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            titleKey: true,
+        },
+    });
+
+    if (!series) {
+        return;
+    }
+
+    const conflictingSeries = await prisma.series.findUnique({
+        where: {
+            titleKey,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (conflictingSeries && conflictingSeries.id !== id) {
+        return;
+    }
+
+    await prisma.$transaction([
+        prisma.series.update({
+            where: { id },
+            data: {
+                title,
+                titleKey,
+            },
+        }),
+
+        prisma.content.updateMany({
+            where: {
+                seriesId: id,
+            },
+            data: {
+                series: title,
+            },
+        }),
+    ]);
+
+    revalidatePath("/admin/taxonomy");
+    revalidatePath("/admin/sermons");
+    revalidatePath("/sermons");
+}
+
 export default async function AdminTaxonomyPage() {
     const [speakers, seriesList] = await Promise.all([
         prisma.speaker.findMany({
@@ -223,7 +284,10 @@ export default async function AdminTaxonomyPage() {
                                         </span>
                                     </div>
 
-                                    <form action={renameSpeaker} className="flex flex-col gap-2 sm:flex-row">
+                                    <form
+                                        action={renameSpeaker}
+                                        className="flex flex-col gap-2 sm:flex-row"
+                                    >
                                         <input
                                             type="hidden"
                                             name="id"
@@ -285,15 +349,43 @@ export default async function AdminTaxonomyPage() {
                             seriesList.map((series) => (
                                 <div
                                     key={series.id}
-                                    className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4"
+                                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
                                 >
-                                    <span className="font-medium text-stone-900">
-                                        {series.title}
-                                    </span>
+                                    <div className="mb-3 flex items-center justify-between gap-4">
+                                        <span className="font-medium text-stone-900">
+                                            {series.title}
+                                        </span>
 
-                                    <span className="shrink-0 text-sm text-stone-500">
-                                        {series.contents.length} 条内容
-                                    </span>
+                                        <span className="shrink-0 text-sm text-stone-500">
+                                            {series.contents.length} 条内容
+                                        </span>
+                                    </div>
+
+                                    <form
+                                        action={renameSeries}
+                                        className="flex flex-col gap-2 sm:flex-row"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value={series.id}
+                                        />
+
+                                        <input
+                                            name="title"
+                                            type="text"
+                                            required
+                                            defaultValue={series.title}
+                                            className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-stone-400"
+                                        />
+
+                                        <button
+                                            type="submit"
+                                            className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
+                                        >
+                                            保存名称
+                                        </button>
+                                    </form>
                                 </div>
                             ))
                         )}
