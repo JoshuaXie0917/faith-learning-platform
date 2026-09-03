@@ -114,6 +114,10 @@ async function updateContent(formData: FormData) {
         where: { id },
         select: {
             publishedAt: true,
+            speakerId: true,
+            seriesId: true,
+            speaker: true,
+            series: true,
         },
     });
 
@@ -121,37 +125,107 @@ async function updateContent(formData: FormData) {
 
     const isComplete = Boolean(title && contentType && date && contentBody);
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
-    const speakerRecord = speaker
-        ? await prisma.speaker.upsert({
-            where: {
-                nameKey: normalizeKey(speaker),
-            },
-            update: {
-                name: speaker,
-                deletedAt: null,
-            },
-            create: {
-                name: speaker,
-                nameKey: normalizeKey(speaker),
-            },
-        })
-        : null;
+    let speakerRecord: { id: string; name: string } | null = null;
 
-    const seriesRecord = series
-        ? await prisma.series.upsert({
-            where: {
-                titleKey: normalizeKey(series),
-            },
-            update: {
-                title: series,
-                deletedAt: null,
-            },
-            create: {
-                title: series,
-                titleKey: normalizeKey(series),
-            },
-        })
-        : null;
+    if (speaker) {
+        const speakerKey = normalizeKey(speaker);
+
+        const isSameSpeaker =
+            Boolean(existingContent.speakerId) &&
+            Boolean(existingContent.speaker) &&
+            speakerKey === normalizeKey(existingContent.speaker ?? "");
+
+        if (isSameSpeaker) {
+            speakerRecord = {
+                id: existingContent.speakerId!,
+                name: existingContent.speaker!,
+            };
+        } else {
+            const existingSpeaker = await prisma.speaker.findUnique({
+                where: {
+                    nameKey: speakerKey,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    deletedAt: true,
+                },
+            });
+
+            if (existingSpeaker?.deletedAt) {
+                return;
+            }
+
+            if (existingSpeaker) {
+                speakerRecord = {
+                    id: existingSpeaker.id,
+                    name: existingSpeaker.name,
+                };
+            } else {
+                speakerRecord = await prisma.speaker.create({
+                    data: {
+                        name: speaker,
+                        nameKey: speakerKey,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                });
+            }
+        }
+    }
+
+    let seriesRecord: { id: string; title: string } | null = null;
+
+    if (series) {
+        const seriesKey = normalizeKey(series);
+
+        const isSameSeries =
+            Boolean(existingContent.seriesId) &&
+            Boolean(existingContent.series) &&
+            seriesKey === normalizeKey(existingContent.series ?? "");
+
+        if (isSameSeries) {
+            seriesRecord = {
+                id: existingContent.seriesId!,
+                title: existingContent.series!,
+            };
+        } else {
+            const existingSeries = await prisma.series.findUnique({
+                where: {
+                    titleKey: seriesKey,
+                },
+                select: {
+                    id: true,
+                    title: true,
+                    deletedAt: true,
+                },
+            });
+
+            if (existingSeries?.deletedAt) {
+                return;
+            }
+
+            if (existingSeries) {
+                seriesRecord = {
+                    id: existingSeries.id,
+                    title: existingSeries.title,
+                };
+            } else {
+                seriesRecord = await prisma.series.create({
+                    data: {
+                        title: series,
+                        titleKey: seriesKey,
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                    },
+                });
+            }
+        }
+    }
 
     await prisma.content.update({
         where: { id },
@@ -163,8 +237,8 @@ async function updateContent(formData: FormData) {
             date: date || getTodayDate(),
             description: description || "暂无内容",
 
-            speaker: speaker || null,
-            series: series || null,
+            speaker: speakerRecord?.name ?? null,
+            series: seriesRecord?.title ?? null,
             speakerId: speakerRecord?.id ?? null,
             seriesId: seriesRecord?.id ?? null,
             resourceUrl: resourceUrl || null,
