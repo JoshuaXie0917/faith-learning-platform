@@ -100,7 +100,7 @@ async function updateContent(formData: FormData) {
     const date = String(formData.get("date") ?? "").trim();
 
     const speaker = String(formData.get("speaker") ?? "").trim();
-    const series = String(formData.get("series") ?? "").trim();
+    const selectedSeriesId = String(formData.get("seriesId") ?? "").trim();
     const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
     const contentBody = String(formData.get("contentBody") ?? "").trim();
     const description =
@@ -122,6 +122,32 @@ async function updateContent(formData: FormData) {
     });
 
     if (!existingContent) return;
+
+    const isKeepingExistingSeries =
+        Boolean(existingContent.seriesId) &&
+        selectedSeriesId === existingContent.seriesId;
+
+    const selectedSeries =
+        selectedSeriesId && !isKeepingExistingSeries
+            ? await prisma.series.findUnique({
+                where: {
+                    id: selectedSeriesId,
+                },
+                select: {
+                    id: true,
+                    title: true,
+                    deletedAt: true,
+                },
+            })
+            : null;
+
+    if (
+        selectedSeriesId &&
+        !isKeepingExistingSeries &&
+        (!selectedSeries || selectedSeries.deletedAt)
+    ) {
+        return;
+    }
 
     const isComplete = Boolean(title && contentType && date && contentBody);
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
@@ -176,56 +202,18 @@ async function updateContent(formData: FormData) {
         }
     }
 
-    let seriesRecord: { id: string; title: string } | null = null;
-
-    if (series) {
-        const seriesKey = normalizeKey(series);
-
-        const isSameSeries =
-            Boolean(existingContent.seriesId) &&
-            Boolean(existingContent.series) &&
-            seriesKey === normalizeKey(existingContent.series ?? "");
-
-        if (isSameSeries) {
-            seriesRecord = {
+    const seriesRecord: { id: string; title: string | null } | null =
+        isKeepingExistingSeries
+            ? {
                 id: existingContent.seriesId!,
-                title: existingContent.series!,
-            };
-        } else {
-            const existingSeries = await prisma.series.findUnique({
-                where: {
-                    titleKey: seriesKey,
-                },
-                select: {
-                    id: true,
-                    title: true,
-                    deletedAt: true,
-                },
-            });
-
-            if (existingSeries?.deletedAt) {
-                return;
+                title: existingContent.series,
             }
-
-            if (existingSeries) {
-                seriesRecord = {
-                    id: existingSeries.id,
-                    title: existingSeries.title,
-                };
-            } else {
-                seriesRecord = await prisma.series.create({
-                    data: {
-                        title: series,
-                        titleKey: seriesKey,
-                    },
-                    select: {
-                        id: true,
-                        title: true,
-                    },
-                });
-            }
-        }
-    }
+            : selectedSeries
+                ? {
+                    id: selectedSeries.id,
+                    title: selectedSeries.title,
+                }
+                : null;
 
     await prisma.content.update({
         where: { id },
@@ -246,7 +234,7 @@ async function updateContent(formData: FormData) {
 
             tagsText: toJsonArrayText(formData.get("tags")),
             searchKeywordsText: JSON.stringify(
-                [title, speaker, series]
+                [title, speaker, seriesRecord?.title ?? ""]
                     .map((item) => item.trim())
                     .filter(Boolean)
             ),
@@ -276,9 +264,32 @@ async function updateContent(formData: FormData) {
 export default async function EditContentPage({ params }: Props) {
     const { id } = await params;
 
-    const content = await prisma.content.findUnique({
-        where: { id },
-    });
+    const [content, seriesList] = await Promise.all([
+        prisma.content.findUnique({
+            where: { id },
+            include: {
+                seriesRef: {
+                    select: {
+                        id: true,
+                        title: true,
+                        deletedAt: true,
+                    },
+                },
+            },
+        }),
+        prisma.series.findMany({
+            where: {
+                deletedAt: null,
+            },
+            orderBy: {
+                title: "asc",
+            },
+            select: {
+                id: true,
+                title: true,
+            },
+        }),
+    ]);
 
     if (!content || content.deletedAt) {
         notFound();
@@ -412,14 +423,24 @@ export default async function EditContentPage({ params }: Props) {
                             <label className="mb-2 block text-sm font-medium text-stone-700">
                                 系列
                             </label>
-                            <input
+                            <select
                                 suppressHydrationWarning
-                                name="series"
-                                type="text"
-                                defaultValue={content.series ?? ""}
-                                placeholder="例如：安静中的学习"
+                                name="seriesId"
+                                defaultValue={content.seriesId ?? ""}
                                 className={inputClass}
-                            />
+                            >
+                                <option value="">不属于系列</option>
+                                {content.seriesRef?.deletedAt && (
+                                    <option value={content.seriesRef.id}>
+                                        {content.seriesRef.title}（当前已停用）
+                                    </option>
+                                )}
+                                {seriesList.map((series) => (
+                                    <option key={series.id} value={series.id}>
+                                        {series.title}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                     </div>

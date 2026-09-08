@@ -68,7 +68,7 @@ async function createContent(formData: FormData) {
     const contentType = String(formData.get("contentType") ?? "recording");
     const date = String(formData.get("date") ?? "").trim();
     const speaker = String(formData.get("speaker") ?? "").trim();
-    const series = String(formData.get("series") ?? "").trim();
+    const selectedSeriesId = String(formData.get("seriesId") ?? "").trim();
     const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
     const contentBody = String(formData.get("contentBody") ?? "").trim();
 
@@ -81,9 +81,8 @@ async function createContent(formData: FormData) {
     const nextStatus = action === "publish" && isComplete ? "published" : "draft";
 
     const speakerKey = speaker ? normalizeKey(speaker) : null;
-    const seriesKey = series ? normalizeKey(series) : null;
 
-    const [existingSpeaker, existingSeries] = await Promise.all([
+    const [existingSpeaker, selectedSeries] = await Promise.all([
         speakerKey
             ? prisma.speaker.findUnique({
                 where: {
@@ -97,10 +96,10 @@ async function createContent(formData: FormData) {
             })
             : null,
 
-        seriesKey
+        selectedSeriesId
             ? prisma.series.findUnique({
                 where: {
-                    titleKey: seriesKey,
+                    id: selectedSeriesId,
                 },
                 select: {
                     id: true,
@@ -111,7 +110,10 @@ async function createContent(formData: FormData) {
             : null,
     ]);
 
-    if (existingSpeaker?.deletedAt || existingSeries?.deletedAt) {
+    if (
+        existingSpeaker?.deletedAt ||
+        (selectedSeriesId && (!selectedSeries || selectedSeries.deletedAt))
+    ) {
         return;
     }
 
@@ -137,27 +139,12 @@ async function createContent(formData: FormData) {
         }
     }
 
-    let seriesRecord: { id: string; title: string } | null = null;
-
-    if (series && seriesKey) {
-        if (existingSeries) {
-            seriesRecord = {
-                id: existingSeries.id,
-                title: existingSeries.title,
-            };
-        } else {
-            seriesRecord = await prisma.series.create({
-                data: {
-                    title: series,
-                    titleKey: seriesKey,
-                },
-                select: {
-                    id: true,
-                    title: true,
-                },
-            });
+    const seriesRecord: { id: string; title: string } | null = selectedSeries
+        ? {
+            id: selectedSeries.id,
+            title: selectedSeries.title,
         }
-    }
+        : null;
 
     const content = await prisma.content.create({
         data: {
@@ -181,7 +168,7 @@ async function createContent(formData: FormData) {
 
             tagsText: toJsonArrayText(formData.get("tags")),
             searchKeywordsText: JSON.stringify(
-                [title, speaker, series]
+                [title, speaker, seriesRecord?.title ?? ""]
                     .map((item) => item.trim())
                     .filter(Boolean)
             ),
@@ -203,7 +190,20 @@ async function createContent(formData: FormData) {
     redirect("/admin/sermons?status=published&type=all");
 }
 
-export default function NewContentPage() {
+export default async function NewContentPage() {
+    const seriesList = await prisma.series.findMany({
+        where: {
+            deletedAt: null,
+        },
+        orderBy: {
+            title: "asc",
+        },
+        select: {
+            id: true,
+            title: true,
+        },
+    });
+
     return (
         <>
             <PageHeader
@@ -326,13 +326,19 @@ export default function NewContentPage() {
                                 系列
                             </label>
 
-                            <input
+                            <select
                                 suppressHydrationWarning
-                                name="series"
-                                type="text"
-                                placeholder="例如：罗马书系列"
+                                name="seriesId"
+                                defaultValue=""
                                 className={inputClass}
-                            />
+                            >
+                                <option value="">不属于系列</option>
+                                {seriesList.map((series) => (
+                                    <option key={series.id} value={series.id}>
+                                        {series.title}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
