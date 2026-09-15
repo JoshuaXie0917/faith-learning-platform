@@ -19,6 +19,7 @@ type PublicContent = {
   scripture: string | null;
   series: string | null;
   seriesId: string | null;
+  seriesImageUrl: string | null;
   date: string;
   rawDate: string;
   duration: string | null;
@@ -606,6 +607,17 @@ export default function SermonsPage() {
                     className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
                   >
                     <Link href={`/sermons/${sermon.id}`} className="block">
+                      {sermon.series && sermon.seriesImageUrl && (
+                        <div className="mb-4 aspect-[16/9] overflow-hidden rounded-2xl bg-stone-100">
+                          <img
+                            src={sermon.seriesImageUrl}
+                            alt={`${sermon.series} 系列封面`}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
                           {sermon.contentTypeLabel ||

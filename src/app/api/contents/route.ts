@@ -27,6 +27,12 @@ export async function GET() {
       series: true,
       speakerId: true,
       seriesId: true,
+      seriesRef: {
+        select: {
+          imageUrl: true,
+          deletedAt: true,
+        },
+      },
       date: true,
       duration: true,
       tagsText: true,
@@ -47,6 +53,9 @@ export async function GET() {
     scripture: content.scripture,
     series: content.series,
     seriesId: content.seriesId,
+    seriesImageUrl: content.seriesRef?.deletedAt
+      ? null
+      : content.seriesRef?.imageUrl ?? null,
     date: formatContentDate(content.date),
     rawDate: content.date,
     duration: content.duration,
