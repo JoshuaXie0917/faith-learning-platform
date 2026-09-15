@@ -1,5 +1,6 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import { verifyAdminSessionCookie } from "@/lib/adminSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,10 @@ export const dynamic = "force-dynamic";
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  if (!verifyAdminSessionCookie(request.headers.get("cookie"))) {
+    return NextResponse.json({ error: "未授权。" }, { status: 401 });
+  }
+
   const body = (await request.json()) as HandleUploadBody;
 
   try {
