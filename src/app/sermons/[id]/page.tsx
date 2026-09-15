@@ -59,6 +59,12 @@ export default async function SermonDetailPage({ params }: Props) {
       contentType: true,
       speaker: true,
       series: true,
+      seriesRef: {
+        select: {
+          imageUrl: true,
+          deletedAt: true,
+        },
+      },
       scripture: true,
       contentBody: true,
       resourceUrl: true,
@@ -79,6 +85,9 @@ export default async function SermonDetailPage({ params }: Props) {
   const hasAudioResource = resourceUrl
     ? isAudioResource(resourceUrl, content.contentType)
     : false;
+  const seriesCoverUrl = content.seriesRef?.deletedAt
+    ? ""
+    : content.seriesRef?.imageUrl?.trim() ?? "";
 
   const allContents = await prisma.content.findMany({
     where: {
@@ -126,6 +135,16 @@ export default async function SermonDetailPage({ params }: Props) {
           <p className="mb-3 text-sm font-medium text-amber-700">
             {content.series}
           </p>
+        )}
+
+        {seriesCoverUrl && (
+          <div className="mb-6 aspect-[16/9] overflow-hidden rounded-2xl bg-stone-100 sm:mb-8">
+            <img
+              src={seriesCoverUrl}
+              alt={content.series ? `${content.series} 系列封面` : "系列封面"}
+              className="h-full w-full object-cover"
+            />
+          </div>
         )}
 
         <h1 className="mb-5 break-words text-2xl font-semibold leading-tight text-stone-900 sm:text-4xl">
