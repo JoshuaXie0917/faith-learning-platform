@@ -37,3 +37,4 @@ Thumbs.db
 prisma/clear-data.js
 # TypeScript cache
 tsconfig.tsbuildinfo
+.vercel

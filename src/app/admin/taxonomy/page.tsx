@@ -2,39 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { revalidatePath } from "next/cache";
+import { SeriesImageUploadField } from "@/components/SeriesImageUploadField";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function normalizeKey(value: string) {
     return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-async function createSpeaker(formData: FormData) {
-    "use server";
-
-    const name = String(formData.get("name") ?? "").trim();
-
-    if (!name) {
-        return;
-    }
-
-    const nameKey = normalizeKey(name);
-
-    await prisma.speaker.upsert({
-        where: {
-            nameKey,
-        },
-        update: {
-            deletedAt: null,
-        },
-        create: {
-            name,
-            nameKey,
-        },
-    });
-
-    revalidatePath("/admin/taxonomy");
 }
 
 async function createSeries(formData: FormData) {
@@ -48,14 +22,21 @@ async function createSeries(formData: FormData) {
 
     const titleKey = normalizeKey(title);
 
-    await prisma.series.upsert({
+    const existingSeries = await prisma.series.findUnique({
         where: {
             titleKey,
         },
-        update: {
-            deletedAt: null,
+        select: {
+            id: true,
         },
-        create: {
+    });
+
+    if (existingSeries) {
+        return;
+    }
+
+    await prisma.series.create({
+        data: {
             title,
             titleKey,
         },
@@ -64,71 +45,13 @@ async function createSeries(formData: FormData) {
     revalidatePath("/admin/taxonomy");
 }
 
-async function renameSpeaker(formData: FormData) {
-    "use server";
-
-    const id = String(formData.get("id") ?? "");
-    const name = String(formData.get("name") ?? "").trim();
-
-    if (!id || !name) {
-        return;
-    }
-
-    const nameKey = normalizeKey(name);
-
-    const speaker = await prisma.speaker.findUnique({
-        where: { id },
-        select: {
-            id: true,
-            nameKey: true,
-        },
-    });
-
-    if (!speaker) {
-        return;
-    }
-
-    const conflictingSpeaker = await prisma.speaker.findUnique({
-        where: {
-            nameKey,
-        },
-        select: {
-            id: true,
-        },
-    });
-
-    if (conflictingSpeaker && conflictingSpeaker.id !== id) {
-        return;
-    }
-    await prisma.$transaction([
-        prisma.speaker.update({
-            where: { id },
-            data: {
-                name,
-                nameKey,
-            },
-        }),
-
-        prisma.content.updateMany({
-            where: {
-                speakerId: id,
-            },
-            data: {
-                speaker: name,
-            },
-        }),
-    ]);
-
-    revalidatePath("/admin/taxonomy");
-    revalidatePath("/admin/sermons");
-    revalidatePath("/sermons");
-}
-
-async function renameSeries(formData: FormData) {
+async function updateSeries(formData: FormData) {
     "use server";
 
     const id = String(formData.get("id") ?? "");
     const title = String(formData.get("title") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const imageUrl = String(formData.get("imageUrl") ?? "").trim();
 
     if (!id || !title) {
         return;
@@ -136,49 +59,56 @@ async function renameSeries(formData: FormData) {
 
     const titleKey = normalizeKey(title);
 
-    const series = await prisma.series.findUnique({
-        where: { id },
-        select: {
-            id: true,
-            titleKey: true,
-        },
-    });
+    const didUpdate = await prisma.$transaction(async (tx) => {
+        const series = await tx.series.findUnique({
+            where: { id },
+            select: {
+                id: true,
+            },
+        });
 
-    if (!series) {
-        return;
-    }
+        if (!series) {
+            return false;
+        }
 
-    const conflictingSeries = await prisma.series.findUnique({
-        where: {
-            titleKey,
-        },
-        select: {
-            id: true,
-        },
-    });
+        const conflictingSeries = await tx.series.findUnique({
+            where: {
+                titleKey,
+            },
+            select: {
+                id: true,
+            },
+        });
 
-    if (conflictingSeries && conflictingSeries.id !== id) {
-        return;
-    }
+        if (conflictingSeries && conflictingSeries.id !== id) {
+            return false;
+        }
 
-    await prisma.$transaction([
-        prisma.series.update({
+        await tx.series.update({
             where: { id },
             data: {
                 title,
                 titleKey,
+                description: description || null,
+                imageUrl: imageUrl || null,
             },
-        }),
+        });
 
-        prisma.content.updateMany({
+        await tx.content.updateMany({
             where: {
                 seriesId: id,
             },
             data: {
                 series: title,
             },
-        }),
-    ]);
+        });
+
+        return true;
+    });
+
+    if (!didUpdate) {
+        return;
+    }
 
     revalidatePath("/admin/taxonomy");
     revalidatePath("/admin/sermons");
@@ -186,211 +116,137 @@ async function renameSeries(formData: FormData) {
 }
 
 export default async function AdminTaxonomyPage() {
-    const [speakers, seriesList] = await Promise.all([
-        prisma.speaker.findMany({
-            where: {
-                deletedAt: null,
-            },
-            orderBy: {
-                name: "asc",
-            },
-            select: {
-                id: true,
-                name: true,
-                contents: {
-                    where: {
-                        deletedAt: null,
-                    },
-                    select: {
-                        id: true,
-                    },
+    const seriesList = await prisma.series.findMany({
+        where: {
+            deletedAt: null,
+        },
+        orderBy: {
+            title: "asc",
+        },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            imageUrl: true,
+            contents: {
+                where: {
+                    deletedAt: null,
+                },
+                select: {
+                    id: true,
                 },
             },
-        }),
-
-        prisma.series.findMany({
-            where: {
-                deletedAt: null,
-            },
-            orderBy: {
-                title: "asc",
-            },
-            select: {
-                id: true,
-                title: true,
-                contents: {
-                    where: {
-                        deletedAt: null,
-                    },
-                    select: {
-                        id: true,
-                    },
-                },
-            },
-        }),
-    ]);
+        },
+    });
 
     return (
         <PageContainer>
             <PageHeader
-                title="讲员与系列"
-                subtitle="管理内容使用的讲员和系列分类。"
+                title="系列管理"
+                subtitle="管理所有系列的名称、简介与封面。"
             />
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-                    <div className="mb-5">
-                        <h2 className="text-lg font-semibold text-stone-900">讲员</h2>
-                        <p className="mt-1 text-sm text-stone-500">
-                            当前共有 {speakers.length} 位讲员。
-                        </p>
+            <div className="space-y-6">
+                <form
+                    action={createSeries}
+                    className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
+                >
+                    <input
+                        name="title"
+                        type="text"
+                        required
+                        placeholder="输入系列名称"
+                        className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400 focus:bg-white"
+                    />
+
+                    <button
+                        type="submit"
+                        className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                    >
+                        新增系列
+                    </button>
+                </form>
+
+                {seriesList.length === 0 ? (
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm text-stone-600">
+                        目前还没有系列。
                     </div>
+                ) : (
+                    <div className="space-y-5">
+                        {seriesList.map((series) => (
+                            <form
+                                key={series.id}
+                                action={updateSeries}
+                                className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="id"
+                                    value={series.id}
+                                />
 
-                    <form action={createSpeaker} className="mb-5 flex flex-col gap-2 sm:flex-row">
-                        <input
-                            name="name"
-                            type="text"
-                            required
-                            placeholder="输入讲员姓名"
-                            className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400"
-                        />
+                                <div className="grid gap-4 lg:grid-cols-[minmax(220px,28%)_1fr] lg:items-start">
+                                    <SeriesImageUploadField
+                                        initialImageUrl={series.imageUrl ?? ""}
+                                    />
 
-                        <button
-                            type="submit"
-                            className="rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
-                        >
-                            新增讲员
-                        </button>
-                    </form>
+                                    <div className="space-y-3">
+                                        <div className="space-y-2">
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                <label
+                                                    htmlFor={`series-title-${series.id}`}
+                                                    className="text-sm font-medium text-amber-800"
+                                                >
+                                                    系列名称
+                                                </label>
 
-                    <div className="space-y-3">
-                        {speakers.length === 0 ? (
-                            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-stone-600">
-                                目前还没有讲员。
-                            </div>
-                        ) : (
-                            speakers.map((speaker) => (
-                                <div
-                                    key={speaker.id}
-                                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
-                                >
-                                    <div className="mb-3 flex items-center justify-between gap-4">
-                                        <span className="font-medium text-stone-900">
-                                            {speaker.name}
-                                        </span>
+                                                <span className="text-sm text-stone-500">
+                                                    {series.contents.length} 条内容
+                                                </span>
+                                            </div>
 
-                                        <span className="shrink-0 text-sm text-stone-500">
-                                            {speaker.contents.length} 条内容
-                                        </span>
+                                            <input
+                                                id={`series-title-${series.id}`}
+                                                name="title"
+                                                type="text"
+                                                required
+                                                defaultValue={series.title}
+                                                className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-lg font-semibold text-stone-950 outline-none transition focus:border-amber-400 focus:bg-white"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label
+                                                htmlFor={`series-description-${series.id}`}
+                                                className="text-sm font-medium text-stone-700"
+                                            >
+                                                简介
+                                            </label>
+
+                                            <textarea
+                                                id={`series-description-${series.id}`}
+                                                name="description"
+                                                defaultValue={series.description ?? ""}
+                                                rows={4}
+                                                className="w-full resize-y rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm leading-6 text-stone-800 outline-none transition focus:border-stone-400 focus:bg-white"
+                                                placeholder="系列简介 / 描述"
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="submit"
+                                                className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                                            >
+                                                保存系列
+                                            </button>
+                                        </div>
                                     </div>
-
-                                    <form
-                                        action={renameSpeaker}
-                                        className="flex flex-col gap-2 sm:flex-row"
-                                    >
-                                        <input
-                                            type="hidden"
-                                            name="id"
-                                            value={speaker.id}
-                                        />
-
-                                        <input
-                                            name="name"
-                                            type="text"
-                                            required
-                                            defaultValue={speaker.name}
-                                            className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-stone-400"
-                                        />
-
-                                        <button
-                                            type="submit"
-                                            className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
-                                        >
-                                            保存名称
-                                        </button>
-                                    </form>
                                 </div>
-                            ))
-                        )}
+                            </form>
+                        ))}
                     </div>
-                </section>
-
-                <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-                    <div className="mb-5">
-                        <h2 className="text-lg font-semibold text-stone-900">系列</h2>
-                        <p className="mt-1 text-sm text-stone-500">
-                            当前共有 {seriesList.length} 个系列。
-                        </p>
-                    </div>
-
-                    <form action={createSeries} className="mb-5 flex flex-col gap-2 sm:flex-row">
-                        <input
-                            name="title"
-                            type="text"
-                            required
-                            placeholder="输入系列名称"
-                            className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400"
-                        />
-
-                        <button
-                            type="submit"
-                            className="rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
-                        >
-                            新增系列
-                        </button>
-                    </form>
-
-                    <div className="space-y-3">
-                        {seriesList.length === 0 ? (
-                            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-stone-600">
-                                目前还没有系列。
-                            </div>
-                        ) : (
-                            seriesList.map((series) => (
-                                <div
-                                    key={series.id}
-                                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4"
-                                >
-                                    <div className="mb-3 flex items-center justify-between gap-4">
-                                        <span className="font-medium text-stone-900">
-                                            {series.title}
-                                        </span>
-
-                                        <span className="shrink-0 text-sm text-stone-500">
-                                            {series.contents.length} 条内容
-                                        </span>
-                                    </div>
-
-                                    <form
-                                        action={renameSeries}
-                                        className="flex flex-col gap-2 sm:flex-row"
-                                    >
-                                        <input
-                                            type="hidden"
-                                            name="id"
-                                            value={series.id}
-                                        />
-
-                                        <input
-                                            name="title"
-                                            type="text"
-                                            required
-                                            defaultValue={series.title}
-                                            className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-stone-400"
-                                        />
-
-                                        <button
-                                            type="submit"
-                                            className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
-                                        >
-                                            保存名称
-                                        </button>
-                                    </form>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </section>
+                )}
             </div>
         </PageContainer>
     );

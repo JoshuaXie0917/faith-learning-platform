@@ -29,7 +29,14 @@ export function Navbar() {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+    }
+
     localStorage.removeItem("adminSession");
     localStorage.removeItem("adminName");
 
@@ -48,7 +55,7 @@ export function Navbar() {
   const adminLinks = [
     { href: "/admin", label: "管理后台" },
     { href: "/admin/sermons", label: "内容管理" },
-    { href: "/admin/taxonomy", label: "讲员与系列" },
+    { href: "/admin/taxonomy", label: "系列管理" },
   ];
 
   return (

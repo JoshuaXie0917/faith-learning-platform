@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeName } from "@/lib/auth";
+import {
+  ADMIN_SESSION_COOKIE_NAME,
+  createAdminSessionToken,
+  getAdminSessionCookieOptions,
+} from "@/lib/adminSession";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +74,24 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ user });
+    const adminSessionToken = createAdminSessionToken();
+
+    if (!adminSessionToken) {
+      return NextResponse.json(
+        { error: "管理员登录失败，请稍后再试。" },
+        { status: 500 }
+      );
+    }
+
+    const response = NextResponse.json({ user });
+
+    response.cookies.set(
+      ADMIN_SESSION_COOKIE_NAME,
+      adminSessionToken,
+      getAdminSessionCookieOptions()
+    );
+
+    return response;
   } catch (error) {
     console.error("管理员登录失败：", error);
 
