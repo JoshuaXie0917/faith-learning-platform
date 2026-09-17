@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
@@ -200,9 +201,18 @@ export default async function AdminTaxonomyPage() {
                                                     系列名称
                                                 </label>
 
-                                                <span className="text-sm text-stone-500">
-                                                    {series.contents.length} 条内容
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                    <span className="text-sm text-stone-500">
+                                                        {series.contents.length} 条内容
+                                                    </span>
+                                                    <Link
+                                                        href={`/admin/taxonomy/${series.id}`}
+                                                        className="text-sm font-medium text-amber-800 underline underline-offset-4 transition hover:text-amber-950"
+                                                        aria-label={`管理${series.title}的内容`}
+                                                    >
+                                                        管理系列内容
+                                                    </Link>
+                                                </div>
                                             </div>
 
                                             <input
