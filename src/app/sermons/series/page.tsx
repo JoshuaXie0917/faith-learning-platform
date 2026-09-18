@@ -46,9 +46,10 @@ export default async function PublicSeriesPage() {
       ) : (
         <section aria-label="系列列表" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {seriesList.map((series) => (
-            <article
+            <Link
               key={series.id}
-              className="min-w-0 rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+              href={`/sermons/series/${series.id}`}
+              className="block min-w-0 rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-stone-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
             >
               <div className="aspect-[16/9] overflow-hidden rounded-lg bg-stone-100">
                 {series.imageUrl?.trim() ? (
@@ -84,7 +85,7 @@ export default async function PublicSeriesPage() {
                   {series.description}
                 </p>
               )}
-            </article>
+            </Link>
           ))}
         </section>
       )}
