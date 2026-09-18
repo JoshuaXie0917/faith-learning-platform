@@ -16,9 +16,68 @@ type SeriesImageUploadFieldProps = {
 
 type SeriesImagePresignResponse = {
     presignedUrl?: string;
-    blobUrl?: string;
     error?: string;
 };
+
+type UploadedBlobResponse = {
+    url?: unknown;
+    pathname?: unknown;
+    contentType?: unknown;
+};
+
+async function readUploadedImageUrl(response: Response) {
+    const blob: UploadedBlobResponse | null = await response.json().catch(() => null);
+    let url: URL;
+
+    try {
+        if (
+            !blob ||
+            typeof blob.url !== "string" ||
+            typeof blob.pathname !== "string" ||
+            typeof blob.contentType !== "string"
+        ) {
+            throw new Error();
+        }
+
+        url = new URL(blob.url);
+        if (
+            url.protocol !== "https:" ||
+            !/^[a-z0-9-]+\.public\.blob\.vercel-storage\.com$/.test(url.hostname) ||
+            !blob.pathname.startsWith("series-images/") ||
+            url.pathname !== `/${blob.pathname}` ||
+            !ALLOWED_IMAGE_TYPES.has(blob.contentType) ||
+            url.username || url.password || url.port || url.search || url.hash
+        ) {
+            throw new Error();
+        }
+    } catch {
+        throw new Error("图片已上传，但未返回有效的封面地址，请重新上传。");
+    }
+
+    // Confirm the public image loads before changing the preview or saved form value.
+    await new Promise<void>((resolve, reject) => {
+        const image = new Image();
+        const timeout = window.setTimeout(() => finish(false), 15000);
+
+        function finish(loaded: boolean) {
+            window.clearTimeout(timeout);
+            image.onload = null;
+            image.onerror = null;
+
+            if (loaded) {
+                resolve();
+            } else {
+                reject(new Error("图片已上传，但封面暂时无法显示，请检查网络后重试。"));
+            }
+        }
+
+        image.onload = () => finish(image.naturalWidth > 0);
+        image.onerror = () => finish(false);
+        image.src = url.href;
+    });
+
+    return url.href;
+}
 
 function formatSize(size: number) {
     return `${(size / 1024 / 1024).toFixed(1)}MB`;
@@ -102,7 +161,7 @@ export function SeriesImageUploadField({
 
             const presignData = (await presignResponse.json()) as SeriesImagePresignResponse;
 
-            if (!presignResponse.ok || !presignData.presignedUrl || !presignData.blobUrl) {
+            if (!presignResponse.ok || !presignData.presignedUrl) {
                 throw new Error(presignData.error || "图片上传授权失败，请稍后再试。");
             }
 
@@ -120,7 +179,8 @@ export function SeriesImageUploadField({
                 throw new Error("图片上传失败，请稍后再试。");
             }
 
-            setImageUrl(presignData.blobUrl);
+            const uploadedImageUrl = await readUploadedImageUrl(uploadResponse);
+            setImageUrl(uploadedImageUrl);
             setMessage("封面已上传，保存系列后生效。");
         } catch (uploadError) {
             console.error("Series image upload failed:", uploadError);
@@ -170,7 +230,7 @@ export function SeriesImageUploadField({
             <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileChange}
                 className="sr-only"
                 aria-label="选择系列封面图片"

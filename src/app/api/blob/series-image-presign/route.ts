@@ -1,4 +1,4 @@
-import { issueSignedToken, parseStoreIdFromDelegationToken, presignUrl } from "@vercel/blob";
+import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { verifyAdminSessionCookie } from "@/lib/adminSession";
 
@@ -62,15 +62,12 @@ export async function POST(request: Request) {
       validUntil,
       allowedContentTypes: [contentType],
       maximumSizeInBytes: size,
+      addRandomSuffix: false,
       allowOverwrite: false,
     });
 
-    const storeId = parseStoreIdFromDelegationToken(signedToken.delegationToken);
-    const blobUrl = `https://${storeId}.public.blob.vercel-storage.com/${pathname}`;
-
     return NextResponse.json({
       presignedUrl,
-      blobUrl,
       pathname,
     });
   } catch (error) {
