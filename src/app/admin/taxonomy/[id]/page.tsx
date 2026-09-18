@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
@@ -16,6 +17,42 @@ const statusLabels: Record<string, string> = {
     draft: "草稿",
     archived: "已下架",
 };
+
+async function assignContentToSeries(seriesId: string, formData: FormData) {
+    "use server";
+
+    const contentId = String(formData.get("contentId") ?? "").trim();
+
+    if (!seriesId || !contentId) {
+        return;
+    }
+
+    const [series, content] = await Promise.all([
+        prisma.series.findUnique({
+            where: { id: seriesId },
+            select: { id: true, title: true, deletedAt: true },
+        }),
+        prisma.content.findUnique({
+            where: { id: contentId },
+            select: { id: true, deletedAt: true },
+        }),
+    ]);
+
+    if (!series || series.deletedAt || !content || content.deletedAt) {
+        return;
+    }
+
+    await prisma.content.update({
+        where: { id: content.id },
+        data: {
+            seriesId: series.id,
+            series: series.title,
+        },
+    });
+
+    revalidatePath(`/admin/taxonomy/${series.id}`);
+    revalidatePath("/admin/sermons");
+}
 
 export default async function AdminSeriesPage({ params }: Props) {
     const { id } = await params;
@@ -36,6 +73,7 @@ export default async function AdminSeriesPage({ params }: Props) {
         scripture: true,
         seriesId: true,
         series: true,
+        seriesRef: { select: { title: true } },
         status: true,
     } as const;
 
@@ -107,14 +145,32 @@ export default async function AdminSeriesPage({ params }: Props) {
                 ) : (
                     <div className="divide-y divide-stone-200 border-y border-stone-200">
                         {candidateSermons.map((sermon) => (
-                            <div key={sermon.id} className="py-3 text-sm">
-                                <p className="font-medium text-stone-900">{sermon.title}</p>
-                                <p className="mt-1 text-stone-500">
-                                    {[sermon.speaker, sermon.date, sermon.seriesId ? sermon.series : null, statusLabels[sermon.status] ?? sermon.status]
-                                        .filter(Boolean)
-                                        .join(" · ")}
-                                </p>
-                            </div>
+                            <form
+                                key={sermon.id}
+                                action={assignContentToSeries.bind(null, series.id)}
+                                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between"
+                            >
+                                <input type="hidden" name="contentId" value={sermon.id} />
+                                <div className="min-w-0 text-sm">
+                                    <p className="font-medium text-stone-900">{sermon.title}</p>
+                                    <p className="mt-1 text-stone-500">
+                                        {[sermon.speaker, sermon.date, sermon.scripture, statusLabels[sermon.status] ?? sermon.status]
+                                            .filter(Boolean)
+                                            .join(" · ")}
+                                    </p>
+                                    {sermon.seriesId && (
+                                        <p className="mt-1 text-amber-800">
+                                            当前系列：{sermon.seriesRef?.title ?? sermon.series}。移入后将离开原系列。
+                                        </p>
+                                    )}
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="shrink-0 self-start rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-900"
+                                >
+                                    {sermon.seriesId ? "移到此系列" : "加入此系列"}
+                                </button>
+                            </form>
                         ))}
                     </div>
                 )}
