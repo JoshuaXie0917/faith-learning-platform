@@ -43,7 +43,6 @@ export default async function AdminPage() {
     publishedCount,
     draftCount,
     archivedCount,
-    mainContents,
     recentContents,
   ] = await Promise.all([
     prisma.content.count({
@@ -70,27 +69,6 @@ export default async function AdminPage() {
       where: {
         status: "archived",
         deletedAt: null,
-      },
-    }),
-
-    prisma.content.findMany({
-      where: {
-        status: "published",
-        deletedAt: null,
-      },
-      orderBy: {
-        date: "desc",
-      },
-      select: {
-        id: true,
-        title: true,
-        contentType: true,
-        date: true,
-        _count: {
-          select: {
-            reads: true,
-          },
-        },
       },
     }),
 
@@ -129,7 +107,7 @@ export default async function AdminPage() {
     <PageContainer>
       <PageHeader
         title="后台总览"
-        subtitle="查看内容数量、每篇内容已读数量和最近内容。"
+        subtitle="查看内容数量和最近内容。"
         action={
           <Link
             href="/admin/sermons"
@@ -154,54 +132,6 @@ export default async function AdminPage() {
             </div>
           </div>
         ))}
-      </section>
-
-      <section className="mb-8 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-stone-900 sm:text-xl">
-              主要内容已读统计
-            </h2>
-
-            <p className="mt-1 text-sm leading-6 text-stone-500">
-              这里按每一篇已发布内容统计已读人数。后台只显示数量，不显示具体是谁读过。
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {mainContents.length === 0 ? (
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm leading-7 text-stone-600">
-              目前还没有已发布内容。
-            </div>
-          ) : (
-            mainContents.map((content) => (
-              <Link
-                key={content.id}
-                href={`/admin/sermons/${content.id}/edit`}
-                className="block rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:bg-stone-100"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="break-words font-semibold leading-7 text-stone-900">
-                      {content.title}
-                    </h3>
-
-                    <p className="mt-1 text-xs text-stone-400">
-                      {contentTypeLabels[content.contentType] ??
-                        content.contentType}{" "}
-                      · {formatDate(content.date)}
-                    </p>
-                  </div>
-
-                  <div className="inline-flex w-full justify-center rounded-full bg-green-50 px-4 py-2 text-sm font-medium text-green-700 sm:w-auto">
-                    已读 {content._count.reads} 人
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
       </section>
 
       <div>
