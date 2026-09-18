@@ -18,7 +18,6 @@ type PublicContent = {
   speakerId: string | null;
   scripture: string | null;
   series: string | null;
-  seriesId: string | null;
   seriesImageUrl: string | null;
   date: string;
   rawDate: string;
@@ -162,7 +161,6 @@ export default function SermonsPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [activeType, setActiveType] = useState("all");
   const [selectedSpeakerId, setSelectedSpeakerId] = useState("all");
-  const [selectedSeriesId, setSelectedSeriesId] = useState("all");
   const [shares, setShares] = useState<DisplayShare[]>([]);
   const [favoriteShareIds, setFavoriteShareIds] = useState<string[]>([]);
   const [favoriteSermonIds, setFavoriteSermonIds] = useState<string[]>([]);
@@ -274,21 +272,6 @@ export default function SermonsPage() {
     }));
   }, [visibleSermons]);
 
-  const seriesOptions = useMemo(() => {
-    const series = new Map<string, string>();
-
-    visibleSermons.forEach((sermon) => {
-      if (sermon.seriesId && sermon.series) {
-        series.set(sermon.seriesId, sermon.series);
-      }
-    });
-
-    return Array.from(series, ([id, name]) => ({
-      id,
-      name,
-    }));
-  }, [visibleSermons]);
-
   const filteredSermons = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
@@ -301,13 +284,6 @@ export default function SermonsPage() {
         if (
           selectedSpeakerId !== "all" &&
           sermon.speakerId !== selectedSpeakerId
-        ) {
-          return false;
-        }
-
-        if (
-          selectedSeriesId !== "all" &&
-          sermon.seriesId !== selectedSeriesId
         ) {
           return false;
         }
@@ -340,7 +316,6 @@ export default function SermonsPage() {
   }, [activeType,
     searchKeyword,
     selectedSpeakerId,
-    selectedSeriesId,
     visibleSermons,]);
 
   const allShares = shares.sort(
@@ -547,23 +522,17 @@ export default function SermonsPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700">
+                <p className="mb-2 block text-sm font-medium text-stone-700">
                   系列
-                </label>
+                </p>
 
-                <select
-                  value={selectedSeriesId}
-                  onChange={(event) => setSelectedSeriesId(event.target.value)}
-                  className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                <Link
+                  href="/sermons/series"
+                  className="inline-flex w-full items-center justify-between rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-700 transition hover:border-stone-500 hover:text-stone-900"
                 >
-                  <option value="all">全部系列</option>
-
-                  {seriesOptions.map((series) => (
-                    <option key={series.id} value={series.id}>
-                      {series.name}
-                    </option>
-                  ))}
-                </select>
+                  浏览系列
+                  <span aria-hidden="true">→</span>
+                </Link>
               </div>
             </div>
           </section>
@@ -588,7 +557,6 @@ export default function SermonsPage() {
                   setSearchKeyword("");
                   setActiveType("all");
                   setSelectedSpeakerId("all");
-                  setSelectedSeriesId("all");
                 }}
                 className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
               >
