@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: Promise<{
+    q?: string | string[];
     status?: string;
     type?: string;
     speaker?: string;
@@ -106,17 +108,46 @@ async function deleteContent(formData: FormData) {
 export default async function AdminSermonsPage({ searchParams }: Props) {
   const params = await searchParams;
 
+  const activeKeyword = typeof params.q === "string" ? params.q.trim() : "";
   const activeStatus = params.status ?? "all";
   const activeType = params.type ?? "all";
   const activeSpeakerId = params.speaker ?? "all";
   const activeSeriesId = params.series ?? "all";
 
-  const where = {
+  const filterParams = new URLSearchParams({
+    status: activeStatus,
+    type: activeType,
+    speaker: activeSpeakerId,
+    series: activeSeriesId,
+  });
+  if (activeKeyword) filterParams.set("q", activeKeyword);
+
+  function filterHref(name: "status" | "type" | "speaker" | "series", value: string) {
+    const nextParams = new URLSearchParams(filterParams);
+    nextParams.set(name, value);
+    return "/admin/sermons?" + nextParams.toString();
+  }
+
+  const where: Prisma.ContentWhereInput = {
     deletedAt: null,
     ...(activeStatus !== "all" ? { status: activeStatus } : {}),
     ...(activeType !== "all" ? { contentType: activeType } : {}),
     ...(activeSpeakerId !== "all" ? { speakerId: activeSpeakerId } : {}),
     ...(activeSeriesId !== "all" ? { seriesId: activeSeriesId } : {}),
+    ...(activeKeyword
+      ? {
+          OR: [
+            { title: { contains: activeKeyword, mode: "insensitive" } },
+            { speaker: { contains: activeKeyword, mode: "insensitive" } },
+            { series: { contains: activeKeyword, mode: "insensitive" } },
+            { scripture: { contains: activeKeyword, mode: "insensitive" } },
+            { description: { contains: activeKeyword, mode: "insensitive" } },
+            { contentBody: { contains: activeKeyword, mode: "insensitive" } },
+            { speakerRef: { is: { name: { contains: activeKeyword, mode: "insensitive" } } } },
+            { seriesRef: { is: { title: { contains: activeKeyword, mode: "insensitive" } } } },
+          ],
+        }
+      : {}),
   };
 
   const [
@@ -242,13 +273,39 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
       </section>
 
       <section className="mb-6 space-y-4 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+        <form action="/admin/sermons" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <input type="hidden" name="status" value={activeStatus} />
+          <input type="hidden" name="type" value={activeType} />
+          <input type="hidden" name="speaker" value={activeSpeakerId} />
+          <input type="hidden" name="series" value={activeSeriesId} />
+          <div className="min-w-0 flex-1">
+            <label htmlFor="content-search" className="mb-2 block text-sm font-medium text-stone-700">
+              搜索内容
+            </label>
+            <input
+              id="content-search"
+              name="q"
+              type="search"
+              defaultValue={activeKeyword}
+              placeholder="搜索标题、讲员、系列、经文或正文"
+              className="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm outline-none transition focus:border-stone-600"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+          >
+            搜索
+          </button>
+        </form>
+
         <div>
           <p className="mb-2 text-sm font-medium text-stone-700">内容状态</p>
 
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             {statusFilters.map((filter) => (
               <Link
-                key={filter.value} href={`/admin/sermons?status=${filter.value}&type=${activeType}&speaker=${activeSpeakerId}&series=${activeSeriesId}`}
+                key={filter.value} href={filterHref("status", filter.value)}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeStatus === filter.value
                   ? "border-stone-900 bg-stone-900 text-white"
                   : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -267,7 +324,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             {typeFilters.map((filter) => (
               <Link
                 key={filter.value}
-                href={`/admin/sermons?status=${activeStatus}&type=${filter.value}&speaker=${activeSpeakerId}&series=${activeSeriesId}`}
+                href={filterHref("type", filter.value)}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
                   ? "border-amber-700 bg-amber-700 text-white"
                   : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -284,7 +341,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             <Link
-              href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=all&series=${activeSeriesId}`}
+              href={filterHref("speaker", "all")}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === "all"
                 ? "border-stone-900 bg-stone-900 text-white"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -296,7 +353,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             {speakers.map((speaker) => (
               <Link
                 key={speaker.id}
-                href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${speaker.id}&series=${activeSeriesId}`}
+                href={filterHref("speaker", speaker.id)}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === speaker.id
                   ? "border-stone-900 bg-stone-900 text-white"
                   : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -313,7 +370,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             <Link
-              href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=all`}
+              href={filterHref("series", "all")}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === "all"
                 ? "border-amber-700 bg-amber-700 text-white"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -325,7 +382,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             {seriesList.map((series) => (
               <Link
                 key={series.id}
-                href={`/admin/sermons?status=${activeStatus}&type=${activeType}&speaker=${activeSpeakerId}&series=${series.id}`}
+                href={filterHref("series", series.id)}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === series.id
                   ? "border-amber-700 bg-amber-700 text-white"
                   : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
@@ -342,7 +399,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
         {contents.length === 0 ? (
           <div className="rounded-3xl border border-amber-100 bg-amber-50 p-6 text-center shadow-sm">
             <p className="text-sm leading-7 text-stone-600">
-              当前筛选条件下没有内容。
+              {totalCount === 0 ? "目前没有内容。" : "没有符合当前搜索或筛选条件的内容。"}
             </p>
           </div>
         ) : (
