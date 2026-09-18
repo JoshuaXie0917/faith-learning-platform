@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { formatContentDate } from "@/lib/contentFormat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +72,8 @@ export default async function AdminSeriesPage({ params }: Props) {
         speaker: true,
         date: true,
         scripture: true,
+        description: true,
+        contentType: true,
         seriesId: true,
         series: true,
         seriesRef: { select: { title: true } },
@@ -118,15 +121,71 @@ export default async function AdminSeriesPage({ params }: Props) {
                 {sermonsInSeries.length === 0 ? (
                     <p className="text-sm text-stone-500">此系列目前没有内容。</p>
                 ) : (
-                    <div className="divide-y divide-stone-200 border-y border-stone-200">
+                    <div className="grid gap-4">
                         {sermonsInSeries.map((sermon) => (
-                            <article key={sermon.id} className="py-4">
-                                <h3 className="font-medium text-stone-900">{sermon.title}</h3>
-                                <p className="mt-1 text-sm text-stone-600">
-                                    {[sermon.speaker, sermon.date, sermon.scripture, statusLabels[sermon.status] ?? sermon.status]
-                                        .filter(Boolean)
-                                        .join(" · ")}
-                                </p>
+                            <article
+                                key={sermon.id}
+                                className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.75fr)]"
+                            >
+                                <div className="min-w-0">
+                                    <div className="inline-flex max-w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 shadow-sm">
+                                        <span className="truncate">{series.title}</span>
+                                    </div>
+
+                                    <Link
+                                        href={`/sermons/${sermon.id}`}
+                                        className="mt-3 block text-xl font-semibold leading-7 text-stone-950 transition hover:text-amber-800"
+                                    >
+                                        <span className="break-words">{sermon.title}</span>
+                                    </Link>
+
+                                    {sermon.speaker?.trim() && (
+                                        <div className="mt-3">
+                                            <span className="inline-flex max-w-full items-center rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
+                                                <span className="truncate">{sermon.speaker}</span>
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-500">
+                                        <span>{formatContentDate(sermon.date)}</span>
+                                        {sermon.scripture?.trim() && (
+                                            <>
+                                                <span aria-hidden="true">·</span>
+                                                <span className="break-words">{sermon.scripture}</span>
+                                            </>
+                                        )}
+                                        <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">
+                                            {statusLabels[sermon.status] ?? sermon.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-4 flex flex-wrap gap-3">
+                                        <Link
+                                            href={`/sermons/${sermon.id}`}
+                                            className="inline-flex items-center justify-center rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-700"
+                                        >
+                                            查看实际内容
+                                        </Link>
+                                        <Link
+                                            href={`/admin/sermons/${sermon.id}/edit`}
+                                            className="inline-flex items-center justify-center rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
+                                        >
+                                            编辑
+                                        </Link>
+                                    </div>
+                                </div>
+
+                                <aside className="min-w-0 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                                    <p className="text-sm font-medium text-stone-700">备注 / 摘要</p>
+                                    {sermon.description?.trim() ? (
+                                        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-stone-600">
+                                            {sermon.description}
+                                        </p>
+                                    ) : (
+                                        <p className="mt-3 text-sm text-stone-400">暂无摘要</p>
+                                    )}
+                                </aside>
                             </article>
                         ))}
                     </div>
