@@ -132,12 +132,18 @@ export default async function AdminSeriesPage({ params }: Props) {
                                         <span className="truncate">{series.title}</span>
                                     </div>
 
-                                    <Link
-                                        href={`/sermons/${sermon.id}`}
-                                        className="mt-3 block text-xl font-semibold leading-7 text-stone-950 transition hover:text-amber-800"
-                                    >
-                                        <span className="break-words">{sermon.title}</span>
-                                    </Link>
+                                    {sermon.status === "published" ? (
+                                        <Link
+                                            href={`/sermons/${sermon.id}`}
+                                            className="mt-3 block text-xl font-semibold leading-7 text-stone-950 transition hover:text-amber-800"
+                                        >
+                                            <span className="break-words">{sermon.title}</span>
+                                        </Link>
+                                    ) : (
+                                        <h3 className="mt-3 break-words text-xl font-semibold leading-7 text-stone-950">
+                                            {sermon.title}
+                                        </h3>
+                                    )}
 
                                     {sermon.speaker?.trim() && (
                                         <div className="mt-3">
@@ -161,12 +167,18 @@ export default async function AdminSeriesPage({ params }: Props) {
                                     </div>
 
                                     <div className="mt-4 flex flex-wrap gap-3">
-                                        <Link
-                                            href={`/sermons/${sermon.id}`}
-                                            className="inline-flex items-center justify-center rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-700"
-                                        >
-                                            查看实际内容
-                                        </Link>
+                                        {sermon.status === "published" ? (
+                                            <Link
+                                                href={`/sermons/${sermon.id}`}
+                                                className="inline-flex items-center justify-center rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-700"
+                                            >
+                                                查看实际内容
+                                            </Link>
+                                        ) : (
+                                            <span className="inline-flex items-center py-2 text-sm text-stone-500">
+                                                当前内容未公开
+                                            </span>
+                                        )}
                                         <Link
                                             href={`/admin/sermons/${sermon.id}/edit`}
                                             className="inline-flex items-center justify-center rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
