@@ -3,13 +3,30 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { SeriesImageUploadField } from "@/components/SeriesImageUploadField";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type Props = {
+    searchParams: Promise<{
+        saveResult?: string | string[];
+        seriesId?: string | string[];
+    }>;
+};
+
 function normalizeKey(value: string) {
     return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function getSaveResultUrl(result: "success" | "error", seriesId: string) {
+    const params = new URLSearchParams({
+        saveResult: result,
+        seriesId,
+    });
+
+    return `/admin/taxonomy?${params.toString()}`;
 }
 
 async function createSeries(formData: FormData) {
@@ -55,7 +72,7 @@ async function updateSeries(formData: FormData) {
     const imageUrl = String(formData.get("imageUrl") ?? "").trim();
 
     if (!id || !title) {
-        return;
+        redirect(getSaveResultUrl("error", id));
     }
 
     const titleKey = normalizeKey(title);
@@ -108,15 +125,20 @@ async function updateSeries(formData: FormData) {
     });
 
     if (!didUpdate) {
-        return;
+        redirect(getSaveResultUrl("error", id));
     }
 
     revalidatePath("/admin/taxonomy");
     revalidatePath("/admin/sermons");
     revalidatePath("/sermons");
+    redirect(getSaveResultUrl("success", id));
 }
 
-export default async function AdminTaxonomyPage() {
+export default async function AdminTaxonomyPage({ searchParams }: Props) {
+    const params = await searchParams;
+    const saveResult = typeof params.saveResult === "string" ? params.saveResult : "";
+    const savedSeriesId = typeof params.seriesId === "string" ? params.seriesId : "";
+
     const seriesList = await prisma.series.findMany({
         where: {
             deletedAt: null,
@@ -243,7 +265,19 @@ export default async function AdminTaxonomyPage() {
                                             />
                                         </div>
 
-                                        <div className="flex justify-end">
+                                        <div className="flex flex-wrap items-center justify-end gap-3">
+                                            {savedSeriesId === series.id && saveResult === "success" ? (
+                                                <p role="status" className="text-sm text-emerald-700">
+                                                    系列已保存。
+                                                </p>
+                                            ) : null}
+
+                                            {savedSeriesId === series.id && saveResult === "error" ? (
+                                                <p role="alert" className="text-sm text-red-700">
+                                                    系列保存失败，请检查后重试。
+                                                </p>
+                                            ) : null}
+
                                             <button
                                                 type="submit"
                                                 className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
