@@ -2,6 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
+import { useSeriesImageUploadState } from "@/components/SeriesEditForm";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -111,7 +112,7 @@ export function SeriesImageUploadField({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [imageUrl, setImageUrl] = useState(initialImageUrl);
-    const [isUploading, setIsUploading] = useState(false);
+    const { isUploading, setIsUploading } = useSeriesImageUploadState();
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 

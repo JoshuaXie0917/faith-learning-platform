@@ -5,6 +5,8 @@ import { PageContainer } from "@/components/PageContainer";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SeriesImageUploadField } from "@/components/SeriesImageUploadField";
+import { SeriesEditForm, SeriesSaveButton } from "@/components/SeriesEditForm";
+import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +15,7 @@ type Props = {
     searchParams: Promise<{
         saveResult?: string | string[];
         seriesId?: string | string[];
+        saveAttempt?: string | string[];
     }>;
 };
 
@@ -24,6 +27,7 @@ function getSaveResultUrl(result: "success" | "error", seriesId: string) {
     const params = new URLSearchParams({
         saveResult: result,
         seriesId,
+        saveAttempt: randomUUID(),
     });
 
     return `/admin/taxonomy?${params.toString()}`;
@@ -138,6 +142,7 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
     const params = await searchParams;
     const saveResult = typeof params.saveResult === "string" ? params.saveResult : "";
     const savedSeriesId = typeof params.seriesId === "string" ? params.seriesId : "";
+    const saveAttempt = typeof params.saveAttempt === "string" ? params.saveAttempt : "";
 
     const seriesList = await prisma.series.findMany({
         where: {
@@ -197,8 +202,10 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                 ) : (
                     <div className="space-y-5">
                         {seriesList.map((series) => (
-                            <form
-                                key={series.id}
+                            <SeriesEditForm
+                                key={`${series.id}:${series.imageUrl ?? ""}:${
+                                    savedSeriesId === series.id ? saveAttempt : ""
+                                }`}
                                 action={updateSeries}
                                 className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
                             >
@@ -278,16 +285,11 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                                                 </p>
                                             ) : null}
 
-                                            <button
-                                                type="submit"
-                                                className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
-                                            >
-                                                保存系列
-                                            </button>
+                                            <SeriesSaveButton />
                                         </div>
                                     </div>
                                 </div>
-                            </form>
+                            </SeriesEditForm>
                         ))}
                     </div>
                 )}
