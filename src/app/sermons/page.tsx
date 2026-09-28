@@ -52,7 +52,7 @@ type DisplayShare = {
   href: string;
 };
 
-type SidePanel = "shares" | "favorites";
+type SidePanel = "my-shares" | "favorites";
 
 const SHARE_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_TOTAL_FAVORITES = 30;
@@ -168,7 +168,7 @@ export default function SermonsPage() {
   const [readContentIds, setReadContentIds] = useState<string[]>([]);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [officialContents, setOfficialContents] = useState<PublicContent[]>([]);
-  const [sidePanel, setSidePanel] = useState<SidePanel>("shares");
+  const [sidePanel, setSidePanel] = useState<SidePanel>("my-shares");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -303,6 +303,7 @@ export default function SermonsPage() {
   );
 
   const favoriteShares = allShares.filter((share) => share.isFavorite);
+  const myShares = allShares.filter((share) => share.isOwner);
 
   const totalFavoriteCount = favoriteShares.length + favoriteSermonIds.length;
 
@@ -438,14 +439,6 @@ export default function SermonsPage() {
       <PageHeader
         title="真理集录"
         subtitle="整理录音、文章、文件、音乐音频、图片与链接，帮助大家持续学习和回顾。"
-        action={
-          <Link
-            href="/sermons/share"
-            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
-          >
-            发布分享
-          </Link>
-        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
@@ -606,13 +599,13 @@ export default function SermonsPage() {
             <div className="mb-4 flex rounded-full bg-stone-100 p-1">
               <button
                 type="button"
-                onClick={() => setSidePanel("shares")}
-                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "shares"
+                onClick={() => setSidePanel("my-shares")}
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "my-shares"
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500"
                   }`}
               >
-                最近分享
+                我的分享
               </button>
 
               <button
@@ -637,12 +630,14 @@ export default function SermonsPage() {
               </div>
             )}
 
-            {sidePanel === "shares" ? (
+            {sidePanel === "my-shares" ? (
               <div className="space-y-3">
-                {allShares.length === 0 ? (
-                  <p className="text-sm text-stone-500">暂无公开分享。</p>
+                {myShares.length === 0 ? (
+                  <p className="text-sm leading-7 text-stone-500">
+                    你还没有发布分享。可以前往全部分享页面新增一条分享。
+                  </p>
                 ) : (
-                  allShares.slice(0, 3).map((share) => {
+                  myShares.slice(0, 3).map((share) => {
                     const isFavorite = share.isFavorite;
 
                     return (

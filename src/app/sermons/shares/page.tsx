@@ -212,14 +212,8 @@ export default function SharesPage() {
               暂无可见分享
             </h2>
             <p className="mt-2 text-sm leading-7 text-stone-600">
-              欢迎写下你的学习心得、提醒、问题或感动。
+              欢迎使用页面上方的“新增分享”，写下你的学习心得、提醒、问题或感动。
             </p>
-            <Link
-              href="/sermons/share"
-              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
-            >
-              新增分享
-            </Link>
           </div>
         ) : (
           <div className="space-y-5">
