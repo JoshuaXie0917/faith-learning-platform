@@ -13,7 +13,7 @@ This project is a full-stack faith learning platform built with Next.js, TypeScr
 - 普通成员登录
 - 管理员后台
 - 内容发布与管理
-- 内容下架与软删除
+- 内容编辑与软删除
 - 成员分享系统
 - 分享详情页
 - 分享删除

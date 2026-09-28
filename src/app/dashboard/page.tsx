@@ -157,7 +157,7 @@ export default function DashboardPage() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-stone-500">
-                最近发布到平台的学习材料、讲道和整理内容。
+                最近添加到平台的学习材料、讲道和整理内容。
               </p>
             </div>
 
@@ -176,7 +176,7 @@ export default function DashboardPage() {
               </div>
             ) : latestContents.length === 0 ? (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm leading-7 text-stone-600 sm:p-6">
-                目前还没有已发布内容。管理员发布内容后，会显示在这里。
+                目前还没有内容。管理员添加内容后，会显示在这里。
               </div>
             ) : (
               latestContents.map((content) => (

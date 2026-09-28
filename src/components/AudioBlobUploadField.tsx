@@ -68,7 +68,7 @@ export function AudioBlobUploadField({
 
             setResourceUrl(blob.url);
             setUploadedFileName(file.name);
-            setMessage("文件已上传成功，发布内容时会自动保存。");
+            setMessage("文件已上传成功，保存表单后会关联到当前内容。");
         } catch (uploadError) {
             console.error("Blob upload failed:", uploadError);
 

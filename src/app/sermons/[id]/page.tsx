@@ -72,7 +72,6 @@ export default async function SermonDetailPage({ params }: Props) {
       duration: true,
       tagsText: true,
       viewCount: true,
-      publishedAt: true,
     },
   });
 

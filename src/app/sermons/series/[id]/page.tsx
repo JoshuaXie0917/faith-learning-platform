@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 import { formatContentDate, getContentTypeLabel } from "@/lib/contentFormat";
 
 export const runtime = "nodejs";
@@ -90,35 +91,22 @@ export default async function PublicSeriesDetailPage({ params }: Props) {
         ) : (
           <div className="grid gap-4">
             {contents.map((content) => (
-              <Link
+              <ContentPresentationCard
                 key={content.id}
+                mode="public"
                 href={`/sermons/${content.id}`}
-                className="block min-w-0 rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-stone-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700 sm:p-5"
-              >
-                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-stone-500">
-                  <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-600">
-                    {getContentTypeLabel(content.contentType)}
-                  </span>
-                  {content.date?.trim() && <span>{formatContentDate(content.date)}</span>}
-                  {content.duration?.trim() && <span>{content.duration}</span>}
-                </div>
-
-                <h3 className="break-words text-lg font-semibold leading-7 text-stone-900">
-                  {content.title}
-                </h3>
-
-                {content.description?.trim() && (
-                  <p className="mt-2 line-clamp-2 break-words text-sm leading-7 text-stone-600">
-                    {content.description}
-                  </p>
-                )}
-
-                {(content.speaker?.trim() || content.scripture?.trim()) && (
-                  <p className="mt-3 break-words text-xs leading-6 text-stone-500">
-                    {[content.speaker?.trim(), content.scripture?.trim()].filter(Boolean).join(" · ")}
-                  </p>
-                )}
-              </Link>
+                series={{ title: series.title, imageUrl: series.imageUrl }}
+                content={{
+                  id: content.id,
+                  title: content.title,
+                  description: content.description,
+                  contentTypeLabel: getContentTypeLabel(content.contentType),
+                  speaker: content.speaker,
+                  date: content.date?.trim() ? formatContentDate(content.date) : null,
+                  scripture: content.scripture,
+                  duration: content.duration,
+                }}
+              />
             ))}
           </div>
         )}

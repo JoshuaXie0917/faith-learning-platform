@@ -4,6 +4,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { ContentPresentationCard } from "@/components/ContentPresentationCard";
+import { FilterDisclosure } from "@/components/FilterDisclosure";
+import { formatContentDate } from "@/lib/contentFormat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +14,6 @@ export const dynamic = "force-dynamic";
 type Props = {
   searchParams: Promise<{
     q?: string | string[];
-    status?: string;
     type?: string;
     speaker?: string;
     series?: string;
@@ -27,19 +29,6 @@ const contentTypeLabels: Record<string, string> = {
   link: "链接",
 };
 
-const statusLabels: Record<string, string> = {
-  published: "已发布",
-  draft: "草稿",
-  archived: "已下架",
-};
-
-const statusFilters = [
-  { value: "all", label: "全部" },
-  { value: "published", label: "已发布" },
-  { value: "draft", label: "草稿" },
-  { value: "archived", label: "已下架" },
-];
-
 const typeFilters = [
   { value: "all", label: "全部类型" },
   { value: "recording", label: "录音" },
@@ -49,42 +38,6 @@ const typeFilters = [
   { value: "image", label: "图片" },
   { value: "link", label: "链接" },
 ];
-
-function formatDateShort(date: string | Date | null) {
-  if (!date) return "";
-
-  const d = new Date(date);
-
-  const year = d.getUTCFullYear();
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-async function changeContentStatus(formData: FormData) {
-  "use server";
-
-  const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "");
-
-  if (!id || !["published", "draft", "archived"].includes(status)) {
-    return;
-  }
-
-  await prisma.content.update({
-    where: { id },
-    data: {
-      status,
-      publishedAt: status === "published" ? new Date() : null,
-      archivedAt: status === "archived" ? new Date() : null,
-    },
-  });
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/sermons");
-  revalidatePath("/sermons");
-}
 
 async function deleteContent(formData: FormData) {
   "use server";
@@ -109,20 +62,18 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
   const params = await searchParams;
 
   const activeKeyword = typeof params.q === "string" ? params.q.trim() : "";
-  const activeStatus = params.status ?? "all";
   const activeType = params.type ?? "all";
   const activeSpeakerId = params.speaker ?? "all";
   const activeSeriesId = params.series ?? "all";
 
   const filterParams = new URLSearchParams({
-    status: activeStatus,
     type: activeType,
     speaker: activeSpeakerId,
     series: activeSeriesId,
   });
   if (activeKeyword) filterParams.set("q", activeKeyword);
 
-  function filterHref(name: "status" | "type" | "speaker" | "series", value: string) {
+  function filterHref(name: "type" | "speaker" | "series", value: string) {
     const nextParams = new URLSearchParams(filterParams);
     nextParams.set(name, value);
     return "/admin/sermons?" + nextParams.toString();
@@ -130,7 +81,6 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
   const where: Prisma.ContentWhereInput = {
     deletedAt: null,
-    ...(activeStatus !== "all" ? { status: activeStatus } : {}),
     ...(activeType !== "all" ? { contentType: activeType } : {}),
     ...(activeSpeakerId !== "all" ? { speakerId: activeSpeakerId } : {}),
     ...(activeSeriesId !== "all" ? { seriesId: activeSeriesId } : {}),
@@ -153,9 +103,6 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
   const [
     contents,
     totalCount,
-    publishedCount,
-    draftCount,
-    archivedCount,
     speakers,
     seriesList,
   ] = await Promise.all([
@@ -168,11 +115,19 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
         id: true,
         title: true,
         contentType: true,
-        status: true,
         speaker: true,
         date: true,
+        scripture: true,
+        description: true,
         duration: true,
-        resourceUrl: true,
+        seriesId: true,
+        series: true,
+        seriesRef: {
+          select: {
+            title: true,
+            imageUrl: true,
+          },
+        },
         updatedAt: true,
         _count: {
           select: {
@@ -184,27 +139,6 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
     prisma.content.count({
       where: {
-        deletedAt: null,
-      },
-    }),
-
-    prisma.content.count({
-      where: {
-        status: "published",
-        deletedAt: null,
-      },
-    }),
-
-    prisma.content.count({
-      where: {
-        status: "draft",
-        deletedAt: null,
-      },
-    }),
-
-    prisma.content.count({
-      where: {
-        status: "archived",
         deletedAt: null,
       },
     }),
@@ -238,16 +172,22 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
   const summaryStats = [
     { label: "全部内容", value: totalCount },
-    { label: "已发布", value: publishedCount },
-    { label: "草稿", value: draftCount },
-    { label: "已下架", value: archivedCount },
   ];
+  const activeTypeLabel = activeType === "all"
+    ? "全部"
+    : typeFilters.find((filter) => filter.value === activeType)?.label ?? "已选择";
+  const activeSpeakerLabel = activeSpeakerId === "all"
+    ? "全部"
+    : speakers.find((speaker) => speaker.id === activeSpeakerId)?.name ?? "已选择";
+  const activeSeriesLabel = activeSeriesId === "all"
+    ? "全部"
+    : seriesList.find((series) => series.id === activeSeriesId)?.title ?? "已选择";
 
   return (
     <PageContainer>
       <PageHeader
         title="内容管理"
-        subtitle="管理真理集录中的正式内容，包括发布、保存草稿、编辑、下架、删除和已读统计。"
+        subtitle="管理真理集录中的内容，包括新增、编辑、删除和已读统计。"
         action={
           <Link
             href="/admin/sermons/new"
@@ -274,7 +214,6 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
 
       <section className="mb-6 space-y-4 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
         <form action="/admin/sermons" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <input type="hidden" name="status" value={activeStatus} />
           <input type="hidden" name="type" value={activeType} />
           <input type="hidden" name="speaker" value={activeSpeakerId} />
           <input type="hidden" name="series" value={activeSeriesId} />
@@ -299,99 +238,43 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
           </button>
         </form>
 
-        <div>
-          <p className="mb-2 text-sm font-medium text-stone-700">内容状态</p>
-
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            {statusFilters.map((filter) => (
-              <Link
-                key={filter.value} href={filterHref("status", filter.value)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeStatus === filter.value
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                  }`}
-              >
-                {filter.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-sm font-medium text-stone-700">内容类型</p>
-
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            {typeFilters.map((filter) => (
-              <Link
-                key={filter.value}
-                href={filterHref("type", filter.value)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
-                  ? "border-amber-700 bg-amber-700 text-white"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                  }`}
-              >
-                {filter.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-sm font-medium text-stone-700">讲员</p>
-
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            <Link
-              href={filterHref("speaker", "all")}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === "all"
-                ? "border-stone-900 bg-stone-900 text-white"
-                : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                }`}
-            >
-              全部讲员
-            </Link>
-
-            {speakers.map((speaker) => (
-              <Link
-                key={speaker.id}
-                href={filterHref("speaker", speaker.id)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSpeakerId === speaker.id
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                  }`}
-              >
-                {speaker.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-sm font-medium text-stone-700">系列</p>
-
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            <Link
-              href={filterHref("series", "all")}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === "all"
-                ? "border-amber-700 bg-amber-700 text-white"
-                : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                }`}
-            >
-              全部系列
-            </Link>
-
-            {seriesList.map((series) => (
-              <Link
-                key={series.id}
-                href={filterHref("series", series.id)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeSeriesId === series.id
-                  ? "border-amber-700 bg-amber-700 text-white"
-                  : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                  }`}
-              >
-                {series.title}
-              </Link>
-            ))}
-          </div>
+        <div className="grid min-w-0 gap-3 md:grid-cols-3">
+          <FilterDisclosure
+            label="内容类型"
+            activeValue={activeType}
+            activeLabel={activeTypeLabel}
+            options={typeFilters.map((filter) => ({
+              value: filter.value,
+              label: filter.value === "all" ? "全部" : filter.label,
+              href: filterHref("type", filter.value),
+            }))}
+          />
+          <FilterDisclosure
+            label="讲员"
+            activeValue={activeSpeakerId}
+            activeLabel={activeSpeakerLabel}
+            options={[
+              { value: "all", label: "全部", href: filterHref("speaker", "all") },
+              ...speakers.map((speaker) => ({
+                value: speaker.id,
+                label: speaker.name,
+                href: filterHref("speaker", speaker.id),
+              })),
+            ]}
+          />
+          <FilterDisclosure
+            label="系列"
+            activeValue={activeSeriesId}
+            activeLabel={activeSeriesLabel}
+            options={[
+              { value: "all", label: "全部", href: filterHref("series", "all") },
+              ...seriesList.map((series) => ({
+                value: series.id,
+                label: series.title,
+                href: filterHref("series", series.id),
+              })),
+            ]}
+          />
         </div>
       </section>
 
@@ -403,125 +286,50 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             </p>
           </div>
         ) : (
-          contents.map((content) => (
-            <article
-              key={content.id}
-              className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md sm:p-5"
-            >
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                <div className="min-w-0">
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
-                      {contentTypeLabels[content.contentType] ??
-                        content.contentType}
-                    </span>
+          contents.map((content) => {
+            const seriesTitle = content.seriesRef?.title ?? content.series?.trim() ?? "";
+            const contentSeries = content.seriesId && seriesTitle
+              ? { title: seriesTitle, imageUrl: content.seriesRef?.imageUrl }
+              : null;
 
-                    <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
-                      {statusLabels[content.status] ?? content.status}
-                    </span>
-
-                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs text-green-700">
-                      已读 {content._count.reads} 人
-                    </span>
-
-                    {content.duration && (
-                      <span className="rounded-full bg-stone-50 px-3 py-1 text-xs text-stone-500">
-                        {content.duration}
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="break-words text-base font-semibold leading-7 text-stone-900 sm:text-lg">
-                    {content.title}
-                  </h2>
-
-                  <p className="mt-2 text-xs leading-6 text-stone-400">
-                    {content.speaker ?? "未填写作者"} · {formatDateShort(content.date)}
-                  </p>
-
-                  {content.resourceUrl && (
-                    <p className="mt-2 line-clamp-1 break-all text-xs text-stone-400">
-                      资源：{content.resourceUrl}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-start lg:max-w-[360px] lg:justify-end">
-                  {content.status === "published" && (
-                    <Link
-                      href={`/sermons/${content.id}`}
-                      className="inline-flex justify-center rounded-full bg-stone-100 px-3 py-2 text-xs text-stone-600 transition hover:bg-stone-200"
-                    >
-                      查看
-                    </Link>
-                  )}
-
-                  {content.status !== "published" && (
-                    <form action={changeContentStatus}>
-                      <input type="hidden" name="id" value={content.id} />
-                      <input type="hidden" name="status" value="published" />
-                      <button
-                        type="submit"
-                        className="w-full rounded-full bg-green-50 px-3 py-2 text-xs text-green-700 transition hover:bg-green-100 sm:w-auto"
-                      >
-                        发布
-                      </button>
-                    </form>
-                  )}
-
-                  {content.status !== "draft" && (
-                    <form action={changeContentStatus}>
-                      <input type="hidden" name="id" value={content.id} />
-                      <input type="hidden" name="status" value="draft" />
-                      <button
-                        type="submit"
-                        className="w-full rounded-full bg-stone-100 px-3 py-2 text-xs text-stone-600 transition hover:bg-stone-200 sm:w-auto"
-                      >
-                        转草稿
-                      </button>
-                    </form>
-                  )}
-
-                  {content.status !== "archived" && (
-                    <form action={changeContentStatus}>
-                      <input type="hidden" name="id" value={content.id} />
-                      <input type="hidden" name="status" value="archived" />
-                      <button
-                        type="submit"
-                        className="w-full rounded-full bg-amber-50 px-3 py-2 text-xs text-amber-700 transition hover:bg-amber-100 sm:w-auto"
-                      >
-                        下架
-                      </button>
-                    </form>
-                  )}
-
-                  <Link
-                    href={`/admin/sermons/${content.id}/edit`}
-                    className="inline-flex justify-center rounded-full bg-stone-100 px-3 py-2 text-xs text-stone-600 transition hover:bg-stone-200"
-                  >
-                    编辑
-                  </Link>
-
-                  <form action={deleteContent}>
+            return (
+              <ContentPresentationCard
+                key={content.id}
+                mode="admin"
+                series={contentSeries}
+                content={{
+                  id: content.id,
+                  title: content.title,
+                  description: content.description,
+                  contentTypeLabel: contentTypeLabels[content.contentType] ?? content.contentType,
+                  speaker: content.speaker,
+                  date: content.date ? formatContentDate(content.date) : null,
+                  scripture: content.scripture,
+                  duration: content.duration,
+                  readCount: content._count.reads,
+                }}
+                adminPublicAction={{ href: `/sermons/${content.id}`, label: "查看" }}
+                actions={
+                  <form action={deleteContent} className="w-full">
                     <input type="hidden" name="id" value={content.id} />
                     <button
                       type="submit"
-                      className="w-full rounded-full bg-red-50 px-3 py-2 text-xs text-red-600 transition hover:bg-red-100 sm:w-auto"
+                      className="w-full rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 transition hover:bg-red-100"
                     >
                       删除
                     </button>
                   </form>
-                </div>
-              </div>
-            </article>
-          ))
+                }
+              />
+            );
+          })
         )}
       </section>
 
       <div className="mt-4 flex flex-col gap-2 text-xs text-stone-400 sm:flex-row sm:items-center sm:justify-between">
         <p>当前显示 {contents.length} 条内容。</p>
 
-        <p>支持发布、保存草稿、编辑、下架和删除。</p>
+        <p>支持新增、编辑和删除。</p>
       </div>
     </PageContainer>
   );

@@ -29,7 +29,7 @@ export function SermonsClient({ contents }: SermonsClientProps) {
           数据库内容测试
         </h2>
         <p className="mt-2 text-sm text-stone-500">
-          当前从数据库读取到 {contents.length} 条已发布内容。
+          当前从数据库读取到 {contents.length} 条内容。
         </p>
       </div>
 

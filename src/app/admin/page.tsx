@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { ContentPresentationCard } from "@/components/ContentPresentationCard";
+import { formatContentDate } from "@/lib/contentFormat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,63 +17,13 @@ const contentTypeLabels: Record<string, string> = {
   link: "链接",
 };
 
-const statusLabels: Record<string, string> = {
-  published: "已发布",
-  draft: "草稿",
-  archived: "已下架",
-};
-
-function formatDate(date: Date | string | null) {
-  if (!date) return "—";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "—";
-  }
-
-  const year = parsedDate.getUTCFullYear();
-  const month = String(parsedDate.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(parsedDate.getUTCDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 export default async function AdminPage() {
-  const [
-    totalContents,
-    publishedCount,
-    draftCount,
-    archivedCount,
-    recentContents,
-  ] = await Promise.all([
+  const [totalContents, recentContents] = await Promise.all([
     prisma.content.count({
       where: {
         deletedAt: null,
       },
     }),
-
-    prisma.content.count({
-      where: {
-        status: "published",
-        deletedAt: null,
-      },
-    }),
-
-    prisma.content.count({
-      where: {
-        status: "draft",
-        deletedAt: null,
-      },
-    }),
-
-    prisma.content.count({
-      where: {
-        status: "archived",
-        deletedAt: null,
-      },
-    }),
-
     prisma.content.findMany({
       where: {
         deletedAt: null,
@@ -84,9 +36,19 @@ export default async function AdminPage() {
         id: true,
         title: true,
         contentType: true,
-        status: true,
+        description: true,
+        speaker: true,
         date: true,
-        updatedAt: true,
+        scripture: true,
+        duration: true,
+        seriesId: true,
+        series: true,
+        seriesRef: {
+          select: {
+            title: true,
+            imageUrl: true,
+          },
+        },
         _count: {
           select: {
             reads: true,
@@ -95,13 +57,6 @@ export default async function AdminPage() {
       },
     }),
   ]);
-
-  const summaryStats = [
-    { label: "内容总数", value: totalContents },
-    { label: "已发布", value: publishedCount },
-    { label: "草稿", value: draftCount },
-    { label: "已下架", value: archivedCount },
-  ];
 
   return (
     <PageContainer>
@@ -117,21 +72,15 @@ export default async function AdminPage() {
           </Link>
         }
       />
-      <section className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {summaryStats.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5"
-          >
-            <p className="mb-2 text-xs tracking-wider text-stone-400">
-              {item.label}
-            </p>
-
-            <div className="text-2xl font-semibold text-stone-900">
-              {item.value}
-            </div>
+      <section aria-label="内容摘要" className="mb-8">
+        <div className="flex w-full max-w-lg items-center justify-between rounded-2xl border border-stone-200 bg-white px-5 py-4 shadow-sm sm:px-6">
+          <p className="text-sm font-medium tracking-wide text-stone-500">
+            内容总数
+          </p>
+          <div className="text-3xl font-semibold text-stone-900">
+            {totalContents}
           </div>
-        ))}
+        </div>
       </section>
 
       <div>
@@ -161,46 +110,31 @@ export default async function AdminPage() {
                 目前还没有内容。可以进入内容管理页面新增内容。
               </div>
             ) : (
-              recentContents.map((content) => (
-                <article
-                  key={content.id}
-                  className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md sm:p-5"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="break-words font-semibold leading-7 text-stone-900">
-                        {content.title}
-                      </h3>
+              recentContents.map((content) => {
+                const seriesTitle = content.seriesRef?.title ?? content.series?.trim() ?? "";
+                const contentSeries = content.seriesId && seriesTitle
+                  ? { title: seriesTitle, imageUrl: content.seriesRef?.imageUrl }
+                  : null;
 
-                      <p className="mt-1 text-xs text-stone-400">
-                        日期：{formatDate(content.date)}
-                      </p>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
-                          {contentTypeLabels[content.contentType] ??
-                            content.contentType}
-                        </span>
-
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
-                          {statusLabels[content.status] ?? content.status}
-                        </span>
-
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-xs text-green-700">
-                          已读 {content._count.reads} 人
-                        </span>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/admin/sermons/${content.id}/edit`}
-                      className="inline-flex w-full justify-center rounded-full bg-stone-100 px-4 py-2 text-sm text-stone-600 transition hover:bg-stone-200 sm:w-auto"
-                    >
-                      编辑
-                    </Link>
-                  </div>
-                </article>
-              ))
+                return (
+                  <ContentPresentationCard
+                    key={content.id}
+                    mode="admin"
+                    series={contentSeries}
+                    content={{
+                      id: content.id,
+                      title: content.title,
+                      description: content.description,
+                      contentTypeLabel: contentTypeLabels[content.contentType] ?? content.contentType,
+                      speaker: content.speaker,
+                      date: content.date ? formatContentDate(content.date) : null,
+                      scripture: content.scripture,
+                      duration: content.duration,
+                      readCount: content._count.reads,
+                    }}
+                  />
+                );
+              })
             )}
           </div>
         </section>

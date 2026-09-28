@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { isContentExpired } from "@/lib/contentRetention";
 import { PageContainer } from "@/components/PageContainer";
+import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 
 type PublicContent = {
   id: string;
@@ -18,6 +19,7 @@ type PublicContent = {
   speakerId: string | null;
   scripture: string | null;
   series: string | null;
+  seriesId: string | null;
   seriesImageUrl: string | null;
   date: string;
   rawDate: string;
@@ -159,7 +161,6 @@ function getOrCreateVisitorKey() {
 
 export default function SermonsPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [activeType, setActiveType] = useState("all");
   const [selectedSpeakerId, setSelectedSpeakerId] = useState("all");
   const [shares, setShares] = useState<DisplayShare[]>([]);
   const [favoriteShareIds, setFavoriteShareIds] = useState<string[]>([]);
@@ -243,20 +244,6 @@ export default function SermonsPage() {
     });
   }, [favoriteSermonIds, officialContents]);
 
-  const typeFilters = useMemo(() => {
-    const types = Array.from(
-      new Set(visibleSermons.map((sermon) => sermon.contentType).filter(Boolean))
-    );
-
-    return [
-      { value: "all", label: "全部" },
-      ...types.map((type) => ({
-        value: type,
-        label: getContentTypeLabel(type),
-      })),
-    ];
-  }, [visibleSermons]);
-
   const speakerOptions = useMemo(() => {
     const speakers = new Map<string, string>();
 
@@ -277,10 +264,6 @@ export default function SermonsPage() {
 
     return visibleSermons
       .filter((sermon) => {
-        if (activeType !== "all" && sermon.contentType !== activeType) {
-          return false;
-        }
-
         if (
           selectedSpeakerId !== "all" &&
           sermon.speakerId !== selectedSpeakerId
@@ -313,10 +296,7 @@ export default function SermonsPage() {
         (a, b) =>
           new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
       );
-  }, [activeType,
-    searchKeyword,
-    selectedSpeakerId,
-    visibleSermons,]);
+  }, [searchKeyword, selectedSpeakerId, visibleSermons]);
 
   const allShares = shares.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -484,23 +464,7 @@ export default function SermonsPage() {
               className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600"
             />
 
-            <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-              {typeFilters.map((filter) => (
-                <button
-                  key={filter.value}
-                  type="button"
-                  onClick={() => setActiveType(filter.value)}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${activeType === filter.value
-                    ? "border-stone-900 bg-stone-900 text-white"
-                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
-                    }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-700">
                   讲员
@@ -555,7 +519,6 @@ export default function SermonsPage() {
                 type="button"
                 onClick={() => {
                   setSearchKeyword("");
-                  setActiveType("all");
                   setSelectedSpeakerId("all");
                 }}
                 className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
@@ -570,69 +533,28 @@ export default function SermonsPage() {
                 const isRead = readContentIds.includes(sermon.id);
 
                 return (
-                  <article
+                  <ContentPresentationCard
                     key={sermon.id}
-                    className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
-                  >
-                    <Link href={`/sermons/${sermon.id}`} className="block">
-                      {sermon.series && sermon.seriesImageUrl && (
-                        <div className="mb-4 aspect-[16/9] overflow-hidden rounded-2xl bg-stone-100">
-                          <img
-                            src={sermon.seriesImageUrl}
-                            alt={`${sermon.series} 系列封面`}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      )}
-
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
-                          {sermon.contentTypeLabel ||
-                            getContentTypeLabel(sermon.contentType)}
-                        </span>
-
-                        <span className="text-xs text-stone-400">
-                          {sermon.date}
-                        </span>
-
-                        {sermon.duration && (
-                          <span className="text-xs text-stone-400">
-                            {sermon.duration}
-                          </span>
-                        )}
-                      </div>
-
-                      <h2 className="break-words text-lg font-semibold leading-8 text-stone-900 sm:text-xl">
-                        {sermon.title}
-                      </h2>
-
-                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-stone-600 sm:line-clamp-2">
-                        {sermon.description}
-                      </p>
-
-                      {sermon.tags.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {sermon.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </Link>
-
-                    <div className="mt-5 flex flex-col gap-4 border-t border-stone-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-xs leading-6 text-stone-400">
-                        {[sermon.speaker, sermon.scripture]
-                          .filter(Boolean)
-                          .join(" · ") || "学习内容"}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    mode="public"
+                    href={`/sermons/${sermon.id}`}
+                    series={
+                      sermon.seriesId && sermon.series?.trim()
+                        ? { title: sermon.series, imageUrl: sermon.seriesImageUrl }
+                        : null
+                    }
+                    content={{
+                      id: sermon.id,
+                      title: sermon.title,
+                      description: sermon.description,
+                      contentTypeLabel: sermon.contentTypeLabel || getContentTypeLabel(sermon.contentType),
+                      speaker: sermon.speaker,
+                      date: sermon.date,
+                      scripture: sermon.scripture,
+                      duration: sermon.duration,
+                      tags: sermon.tags,
+                    }}
+                    footer={
+                      <div className="flex flex-wrap justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => toggleFavoriteSermon(sermon.id)}
@@ -643,7 +565,6 @@ export default function SermonsPage() {
                         >
                           {isFavorite ? "已收藏" : "收藏"}
                         </button>
-
                         <button
                           type="button"
                           onClick={() => toggleReadContent(sermon.id)}
@@ -655,8 +576,8 @@ export default function SermonsPage() {
                           {isRead ? "已读" : "标记已读"}
                         </button>
                       </div>
-                    </div>
-                  </article>
+                    }
+                  />
                 );
               })}
             </section>

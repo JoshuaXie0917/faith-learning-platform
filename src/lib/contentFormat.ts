@@ -7,18 +7,8 @@ export const contentTypeLabels: Record<string, string> = {
   link: "链接",
 };
 
-export const statusLabels: Record<string, string> = {
-  published: "已发布",
-  draft: "草稿",
-  archived: "已下架",
-};
-
 export function getContentTypeLabel(type: string) {
   return contentTypeLabels[type] ?? "学习内容";
-}
-
-export function getStatusLabel(status: string) {
-  return statusLabels[status] ?? status;
 }
 
 export function parseJsonTextArray(value: string | null | undefined) {

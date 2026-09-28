@@ -83,17 +83,10 @@ function toJsonArrayText(value: FormDataEntryValue | null) {
     return JSON.stringify(items);
 }
 
-function getStatusLabel(status: string) {
-    if (status === "published") return "已发布";
-    if (status === "archived") return "已下架";
-    return "草稿";
-}
-
 async function updateContent(formData: FormData) {
     "use server";
 
     const id = String(formData.get("id") ?? "");
-    const action = String(formData.get("action") ?? "draft");
 
     const title = String(formData.get("title") ?? "").trim();
     const contentType = String(formData.get("contentType") ?? "recording");
@@ -149,8 +142,6 @@ async function updateContent(formData: FormData) {
         return;
     }
 
-    const isComplete = Boolean(title && contentType && date && contentBody);
-    const nextStatus = action === "publish" && isComplete ? "published" : "draft";
     let speakerRecord: { id: string; name: string } | null = null;
 
     if (speaker) {
@@ -218,9 +209,9 @@ async function updateContent(formData: FormData) {
     await prisma.content.update({
         where: { id },
         data: {
-            title: title || "未命名草稿",
+            title: title || "未命名内容",
             contentType,
-            status: nextStatus,
+            status: "published",
 
             date: date || getTodayDate(),
             description: description || "暂无内容",
@@ -239,10 +230,7 @@ async function updateContent(formData: FormData) {
                     .filter(Boolean)
             ),
 
-            publishedAt:
-                nextStatus === "published"
-                    ? existingContent.publishedAt ?? new Date()
-                    : null,
+            publishedAt: existingContent.publishedAt ?? new Date(),
             archivedAt: null,
         },
     });
@@ -254,11 +242,7 @@ async function updateContent(formData: FormData) {
     revalidatePath(`/sermons/${id}`);
     revalidatePath("/dashboard");
 
-    if (nextStatus === "draft") {
-        redirect(`/admin/sermons/${id}/edit`);
-    }
-
-    redirect("/admin/sermons?status=published&type=all");
+    redirect("/admin/sermons?type=all");
 }
 
 export default async function EditContentPage({ params }: Props) {
@@ -299,7 +283,7 @@ export default async function EditContentPage({ params }: Props) {
         <PageContainer>
             <PageHeader
                 title="编辑内容"
-                subtitle="修改内容信息。必填信息完整时可以发布；不完整时会继续保存为草稿。"
+                subtitle="修改并保存内容信息。"
                 action={
                     <Link
                         href="/admin/sermons"
@@ -317,14 +301,14 @@ export default async function EditContentPage({ params }: Props) {
                 <input type="hidden" name="id" value={content.id} />
 
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    发布需要填写：标题、内容类型、日期、主要内容。其他信息可以根据需要补充；未填写完整时会保存为草稿。
+                    请填写标题、内容类型、日期和主要内容。其他信息可以根据需要补充。
                 </div>
 
                 <section>
                     <div className="mb-5">
                         <h2 className="text-lg font-semibold text-stone-900">必填信息</h2>
                         <p className="mt-1 text-sm leading-6 text-stone-500">
-                            这些信息决定内容是否可以正式发布。
+                            这些信息用于展示和整理内容。
                         </p>
                     </div>
 
@@ -337,6 +321,7 @@ export default async function EditContentPage({ params }: Props) {
                                 suppressHydrationWarning
                                 name="title"
                                 type="text"
+                                required
                                 defaultValue={content.title}
                                 placeholder="例如：在安静中等候"
                                 className={inputClass}
@@ -369,6 +354,7 @@ export default async function EditContentPage({ params }: Props) {
                                 suppressHydrationWarning
                                 name="date"
                                 type="date"
+                                required
                                 defaultValue={content.date}
                                 className={dateInputClass}
                             />
@@ -391,7 +377,7 @@ export default async function EditContentPage({ params }: Props) {
                         />
 
                         <p className="mt-2 text-xs leading-6 text-stone-400">
-                            主要内容是正式发布的必填项目，也会用于自动生成内容摘要。
+                            主要内容是必填项目，也会用于自动生成内容摘要。
                         </p>
                     </div>
                 </section>
@@ -400,7 +386,7 @@ export default async function EditContentPage({ params }: Props) {
                     <div className="mb-5">
                         <h2 className="text-lg font-semibold text-stone-900">选填信息</h2>
                         <p className="mt-1 text-sm leading-6 text-stone-500">
-                            这些信息可以帮助分类、搜索和补充内容，但不是发布必须条件。
+                            这些信息可以帮助分类、搜索和补充内容。
                         </p>
                     </div>
 
@@ -465,14 +451,7 @@ export default async function EditContentPage({ params }: Props) {
                     </div>
                 </section>
 
-                <div className="flex flex-col gap-4 border-t border-stone-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm text-stone-400">
-                        当前状态：
-                        <span className="ml-1 font-medium text-stone-700">
-                            {getStatusLabel(content.status)}
-                        </span>
-                    </div>
-
+                <div className="flex flex-col gap-4 border-t border-stone-100 pt-6 sm:flex-row sm:items-center sm:justify-end">
                     <div className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
                         <Link
                             href="/admin/sermons"
@@ -483,20 +462,9 @@ export default async function EditContentPage({ params }: Props) {
 
                         <button
                             type="submit"
-                            name="action"
-                            value="draft"
-                            className="w-full rounded-full bg-stone-100 px-5 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-200 sm:w-auto"
-                        >
-                            保存草稿
-                        </button>
-
-                        <button
-                            type="submit"
-                            name="action"
-                            value="publish"
                             className="w-full rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
                         >
-                            发布内容
+                            保存修改
                         </button>
                     </div>
                 </div>
