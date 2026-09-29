@@ -1,4 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import {
+  countVisitorFavorites,
+  MAX_TOTAL_FAVORITES,
+  withFavoriteMutationLock,
+} from "@/lib/favoriteLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,36 +34,75 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const share = await prisma.share.findFirst({
-      where: {
-        id,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-      },
-    });
+    const result = await withFavoriteMutationLock(
+      visitorKey,
+      async (transaction) => {
+        const share = await transaction.share.findFirst({
+          where: {
+            id,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
 
-    if (!share) {
+        if (!share) {
+          return { status: "not-found" as const };
+        }
+
+        const existingFavorite = await transaction.shareFavorite.findUnique({
+          where: {
+            shareId_visitorKey: {
+              shareId: id,
+              visitorKey,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingFavorite) {
+          return { status: "saved" as const };
+        }
+
+        const totalFavoriteCount = await countVisitorFavorites(
+          transaction,
+          visitorKey
+        );
+
+        if (totalFavoriteCount >= MAX_TOTAL_FAVORITES) {
+          return { status: "limit" as const };
+        }
+
+        await transaction.shareFavorite.create({
+          data: {
+            shareId: id,
+            visitorKey,
+          },
+        });
+
+        return { status: "saved" as const };
+      }
+    );
+
+    if (result.status === "not-found") {
       return Response.json(
         { error: "分享不存在或已被删除。" },
         { status: 404 }
       );
     }
 
-    await prisma.shareFavorite.upsert({
-      where: {
-        shareId_visitorKey: {
-          shareId: id,
-          visitorKey,
+    if (result.status === "limit") {
+      return Response.json(
+        {
+          error: "收藏数量已达到 30 个上限。",
+          limit: MAX_TOTAL_FAVORITES,
         },
-      },
-      update: {},
-      create: {
-        shareId: id,
-        visitorKey,
-      },
-    });
+        { status: 409 }
+      );
+    }
 
     return Response.json({
       ok: true,
@@ -89,11 +132,13 @@ export async function DELETE(request: Request, context: RouteContext) {
       );
     }
 
-    await prisma.shareFavorite.deleteMany({
-      where: {
-        shareId: id,
-        visitorKey,
-      },
+    await withFavoriteMutationLock(visitorKey, async (transaction) => {
+      await transaction.shareFavorite.deleteMany({
+        where: {
+          shareId: id,
+          visitorKey,
+        },
+      });
     });
 
     return Response.json({

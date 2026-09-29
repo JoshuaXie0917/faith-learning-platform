@@ -62,7 +62,8 @@ model Content {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reads ContentRead[]
+  reads     ContentRead[]
+  favorites ContentFavorite[]
 
   @@index([speakerId])
   @@index([seriesId])
@@ -106,6 +107,20 @@ model ContentRead {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([contentId, userId])
+}
+
+model ContentFavorite {
+  id String @id @default(cuid())
+
+  contentId  String
+  visitorKey String
+
+  createdAt DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, visitorKey])
+  @@index([visitorKey])
 }
 
 model CheckIn {

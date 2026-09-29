@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  loadAndMigrateContentFavorites,
+  readLegacyContentFavoriteIds,
+} from "@/lib/contentFavoritesClient";
 
 type DisplayShare = {
   id: string;
@@ -37,22 +41,6 @@ function getOrCreateVisitorKey() {
   return newKey;
 }
 
-function getFavoriteSermonCount() {
-  try {
-    const savedValue = localStorage.getItem("favoriteSermonIds");
-
-    if (!savedValue) return 0;
-
-    const parsedValue = JSON.parse(savedValue);
-
-    return Array.isArray(parsedValue)
-      ? parsedValue.filter((item) => typeof item === "string").length
-      : 0;
-  } catch {
-    return 0;
-  }
-}
-
 export default function SharesPage() {
   const [shares, setShares] = useState<DisplayShare[]>([]);
   const [favoriteSermonCount, setFavoriteSermonCount] = useState(0);
@@ -61,11 +49,29 @@ export default function SharesPage() {
   const [updatingShareId, setUpdatingShareId] = useState<string | null>(null);
 
   useEffect(() => {
-    setFavoriteSermonCount(getFavoriteSermonCount());
+    let isCancelled = false;
+    const visitorKey = getOrCreateVisitorKey();
+
+    setFavoriteSermonCount(readLegacyContentFavoriteIds().length);
+
+    async function loadFavoriteContents() {
+      try {
+        const result = await loadAndMigrateContentFavorites(visitorKey);
+
+        if (!isCancelled) {
+          setFavoriteSermonCount(result.favoriteContentIds.length);
+
+          if (result.limitReached) {
+            setMessage("收藏数量已达到 30 个上限，未同步的本地收藏已保留。");
+          }
+        }
+      } catch {
+        // Keep the browser favorite count until migration can be retried.
+      }
+    }
 
     async function loadShares() {
       try {
-        const visitorKey = getOrCreateVisitorKey();
         const response = await fetch(`/api/shares?visitorKey=${visitorKey}`);
         const data = (await response.json()) as {
           shares?: DisplayShare[];
@@ -87,7 +93,12 @@ export default function SharesPage() {
       }
     }
 
+    loadFavoriteContents();
     loadShares();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const orderedShares = useMemo(

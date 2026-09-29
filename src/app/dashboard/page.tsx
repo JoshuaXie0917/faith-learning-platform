@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import {
+  loadAndMigrateContentFavorites,
+  readLegacyContentFavoriteIds,
+} from "@/lib/contentFavoritesClient";
 
 type PublicContent = {
   id: string;
@@ -63,19 +67,28 @@ export default function DashboardPage() {
   const [isLoadingShares, setIsLoadingShares] = useState(true);
 
   useEffect(() => {
-    const storedFavorites = localStorage.getItem("favoriteSermonIds");
+    let isCancelled = false;
 
-    if (storedFavorites) {
+    setFavoriteSermonIds(readLegacyContentFavoriteIds());
+
+    async function loadFavoriteContents() {
       try {
-        const parsedFavorites = JSON.parse(storedFavorites) as string[];
+        const visitorKey = getOrCreateVisitorKey();
+        const result = await loadAndMigrateContentFavorites(visitorKey);
 
-        if (Array.isArray(parsedFavorites)) {
-          setFavoriteSermonIds(parsedFavorites);
+        if (!isCancelled) {
+          setFavoriteSermonIds(result.favoriteContentIds);
         }
       } catch {
-        localStorage.removeItem("favoriteSermonIds");
+        // Keep the browser favorites available until migration can be retried.
       }
     }
+
+    loadFavoriteContents();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   useEffect(() => {

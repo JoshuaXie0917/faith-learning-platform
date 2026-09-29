@@ -8,6 +8,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { isContentExpired } from "@/lib/contentRetention";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
+import {
+  loadAndMigrateContentFavorites,
+  readLegacyContentFavoriteIds,
+  setContentFavorite,
+} from "@/lib/contentFavoritesClient";
 
 type PublicContent = {
   id: string;
@@ -163,25 +168,51 @@ export default function SermonsPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedSpeakerId, setSelectedSpeakerId] = useState("all");
   const [shares, setShares] = useState<DisplayShare[]>([]);
-  const [favoriteShareIds, setFavoriteShareIds] = useState<string[]>([]);
   const [favoriteSermonIds, setFavoriteSermonIds] = useState<string[]>([]);
   const [readContentIds, setReadContentIds] = useState<string[]>([]);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [officialContents, setOfficialContents] = useState<PublicContent[]>([]);
   const [sidePanel, setSidePanel] = useState<SidePanel>("my-shares");
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingFavoriteContentId, setUpdatingFavoriteContentId] = useState<string | null>(null);
+  const [migratingFavoriteContentIds, setMigratingFavoriteContentIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const savedFavoriteSermonIds = JSON.parse(
-      localStorage.getItem("favoriteSermonIds") ?? "[]"
-    ) as string[];
+    let isCancelled = false;
+    const legacyFavoriteContentIds = readLegacyContentFavoriteIds();
 
-    const savedReadContentIds = JSON.parse(
-      localStorage.getItem("readContentIds") ?? "[]"
-    ) as string[];
+    setFavoriteSermonIds(legacyFavoriteContentIds);
+    setMigratingFavoriteContentIds(legacyFavoriteContentIds);
+    setReadContentIds(readStringArrayFromStorage("readContentIds"));
 
-    setFavoriteSermonIds(savedFavoriteSermonIds);
-    setReadContentIds(savedReadContentIds);
+    async function syncContentFavorites() {
+      try {
+        const visitorKey = getOrCreateVisitorKey();
+        const result = await loadAndMigrateContentFavorites(visitorKey);
+
+        if (!isCancelled) {
+          setFavoriteSermonIds(result.favoriteContentIds);
+
+          if (result.limitReached) {
+            setFavoriteMessage(
+              "收藏数量已达到 30 个上限，未同步的本地收藏已保留。"
+            );
+          }
+        }
+      } catch {
+        // Keep the existing browser favorites visible and stored for a later retry.
+      } finally {
+        if (!isCancelled) {
+          setMigratingFavoriteContentIds([]);
+        }
+      }
+    }
+
+    syncContentFavorites();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -311,7 +342,14 @@ export default function SermonsPage() {
     favoriteSermonIds.includes(sermon.id)
   );
 
-  function toggleFavoriteSermon(sermonId: string) {
+  async function toggleFavoriteSermon(sermonId: string) {
+    if (updatingFavoriteContentId) return;
+
+    if (migratingFavoriteContentIds.includes(sermonId)) {
+      setFavoriteMessage("正在同步已有收藏，请稍后再试。");
+      return;
+    }
+
     const isFavorite = favoriteSermonIds.includes(sermonId);
 
     if (!isFavorite && totalFavoriteCount >= MAX_TOTAL_FAVORITES) {
@@ -319,19 +357,29 @@ export default function SermonsPage() {
       return;
     }
 
-    const nextIds = isFavorite
-      ? favoriteSermonIds.filter((id) => id !== sermonId)
-      : [...favoriteSermonIds, sermonId];
+    setUpdatingFavoriteContentId(sermonId);
 
-    setFavoriteSermonIds(nextIds);
-    localStorage.setItem("favoriteSermonIds", JSON.stringify(nextIds));
+    try {
+      const visitorKey = getOrCreateVisitorKey();
+      const nextIds = await setContentFavorite(visitorKey, sermonId, !isFavorite);
 
-    setFavoriteMessage(
-      isFavorite
-        ? "已取消收藏。"
-        : `已收藏，当前共收藏 ${nextIds.length + favoriteShareIds.length
-        } 个内容。`
-    );
+      setFavoriteSermonIds(nextIds);
+      setFavoriteMessage(
+        isFavorite
+          ? "已取消收藏。"
+          : `已收藏，当前共收藏 ${nextIds.length + favoriteShares.length} 个内容。`
+      );
+    } catch (error) {
+      setFavoriteMessage(
+        error instanceof Error
+          ? error.message
+          : isFavorite
+            ? "取消收藏失败，请稍后再试。"
+            : "收藏失败，请稍后再试。"
+      );
+    } finally {
+      setUpdatingFavoriteContentId(null);
+    }
   }
 
   async function toggleReadContent(sermonId: string) {
@@ -524,6 +572,9 @@ export default function SermonsPage() {
               {filteredSermons.map((sermon) => {
                 const isFavorite = favoriteSermonIds.includes(sermon.id);
                 const isRead = readContentIds.includes(sermon.id);
+                const isMigratingFavorite = migratingFavoriteContentIds.includes(
+                  sermon.id
+                );
 
                 return (
                   <ContentPresentationCard
@@ -551,12 +602,22 @@ export default function SermonsPage() {
                         <button
                           type="button"
                           onClick={() => toggleFavoriteSermon(sermon.id)}
+                          disabled={
+                            updatingFavoriteContentId === sermon.id ||
+                            isMigratingFavorite
+                          }
                           className={`rounded-full px-3 py-2 text-xs transition ${isFavorite
                             ? "bg-amber-100 text-amber-800"
                             : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                            }`}
+                            } disabled:cursor-not-allowed disabled:opacity-60`}
                         >
-                          {isFavorite ? "已收藏" : "收藏"}
+                          {isMigratingFavorite
+                            ? "同步中..."
+                            : updatingFavoriteContentId === sermon.id
+                              ? "处理中..."
+                              : isFavorite
+                                ? "已收藏"
+                                : "收藏"}
                         </button>
                         <button
                           type="button"
