@@ -153,6 +153,7 @@ model Share {
 
   @@index([ownerKey])
   @@index([expiresAt])
+  @@index([expiresAt, id])
 }
 
 model ShareFavorite {

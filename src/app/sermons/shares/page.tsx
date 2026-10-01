@@ -152,14 +152,18 @@ export default function SharesPage() {
       }
 
       setShares((currentShares) =>
-        currentShares.map((share) =>
-          share.id === shareId
-            ? {
-                ...share,
-                isFavorite: !targetShare.isFavorite,
-              }
-            : share
-        )
+        currentShares
+          .filter(
+            (share) =>
+              share.id !== shareId ||
+              !targetShare.isFavorite ||
+              new Date(share.expiresAt).getTime() > Date.now()
+          )
+          .map((share) =>
+            share.id === shareId
+              ? { ...share, isFavorite: !targetShare.isFavorite }
+              : share
+          )
       );
       setMessage(targetShare.isFavorite ? "已取消收藏。" : "已收藏分享。");
     } catch {
@@ -175,7 +179,7 @@ export default function SharesPage() {
     <PageContainer>
       <PageHeader
         title="兄弟姊妹的分享"
-        subtitle="阅读大家的学习心得、提醒、问题与感动。普通分享公开展示 7 天；你发布或收藏的分享会继续对你可见。"
+        subtitle="阅读大家的学习心得、提醒、问题与感动。未收藏的分享在 7 天后将被清理；收藏者可继续查看已收藏的分享。"
         action={
           <>
             <Link

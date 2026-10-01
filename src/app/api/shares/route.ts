@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SHARE_EXPIRE_DAYS = 7;
+const SHARE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SHARE_LENGTH = 800;
 
 function normalizeVisitorKey(value: string) {
@@ -13,12 +13,6 @@ function normalizeVisitorKey(value: string) {
 
 function countTextWithoutPunctuation(text: string) {
   return Array.from(text).filter((char) => /[\p{L}\p{N}]/u.test(char)).length;
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-  return nextDate;
 }
 
 function formatDate(date: Date) {
@@ -45,18 +39,11 @@ export async function GET(request: Request) {
     ];
 
     if (visitorKey) {
-      visibilityConditions.push(
-        {
-          ownerKey: visitorKey,
+      visibilityConditions.push({
+        favorites: {
+          some: { visitorKey },
         },
-        {
-          favorites: {
-            some: {
-              visitorKey,
-            },
-          },
-        }
-      );
+      });
     }
 
     const shares = await prisma.share.findMany({
@@ -167,7 +154,8 @@ export async function POST(request: Request) {
         title,
         content,
         ownerKey: visitorKey,
-        expiresAt: addDays(now, SHARE_EXPIRE_DAYS),
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + SHARE_LIFETIME_MS),
       },
       select: {
         id: true,

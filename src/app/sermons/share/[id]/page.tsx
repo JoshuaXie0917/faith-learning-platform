@@ -183,7 +183,7 @@ export default function ShareDetailPage() {
                         </div>
 
                         <div className="mt-8 rounded-2xl bg-stone-50 p-4 text-sm leading-7 text-stone-500">
-                            公开展示至：{share.expiresDate}。如果这是你自己写的分享，过期后你仍然可以看到。
+                            公开展示至：{share.expiresDate}。到期后，仅收藏这条分享的访客可继续查看。
                         </div>
 
                         {share.isOwner && (

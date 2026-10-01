@@ -466,14 +466,18 @@ export default function SermonsPage() {
       }
 
       setShares((currentShares) =>
-        currentShares.map((share) =>
-          share.id === shareId
-            ? {
-              ...share,
-              isFavorite: !isFavorite,
-            }
-            : share
-        )
+        currentShares
+          .filter(
+            (share) =>
+              share.id !== shareId ||
+              !isFavorite ||
+              new Date(share.expiresAt).getTime() > Date.now()
+          )
+          .map((share) =>
+            share.id === shareId
+              ? { ...share, isFavorite: !isFavorite }
+              : share
+          )
       );
 
       setFavoriteMessage(isFavorite ? "已取消收藏。" : "已收藏分享。");
@@ -645,7 +649,7 @@ export default function SermonsPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-7 text-stone-500">
-              分享保存 7 天；被收藏的分享不会自动清理。正式内容和分享收藏总数最多 30 个。
+              未收藏的分享在 7 天后将被清理；收藏者可继续查看已收藏的分享。正式内容和分享收藏总数最多 30 个。
             </p>
 
             <Link

@@ -38,18 +38,11 @@ export async function GET(request: Request, context: RouteContext) {
   ];
 
   if (visitorKey) {
-    visibilityConditions.push(
-      {
-        ownerKey: visitorKey,
+    visibilityConditions.push({
+      favorites: {
+        some: { visitorKey },
       },
-      {
-        favorites: {
-          some: {
-            visitorKey,
-          },
-        },
-      }
-    );
+    });
   }
 
   const share = await prisma.share.findFirst({

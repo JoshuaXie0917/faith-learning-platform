@@ -114,7 +114,7 @@ export default function SharePage() {
             <PageContainer>
                 <PageHeader
                     title="发布分享"
-                    subtitle="写下你的学习心得、提醒、问题或感动。分享会保存 7 天；你自己写的分享过期后仍然可以看到。"
+                    subtitle="写下你的学习心得、提醒、问题或感动。未收藏的分享在 7 天后将被清理；收藏者可继续查看已收藏的分享。"
                     action={
                         <Link
                             href="/sermons"
@@ -130,7 +130,7 @@ export default function SharePage() {
                     className="mx-auto max-w-3xl space-y-6 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
                 >
                     <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                        分享会写入数据库，不再只是保存在本地浏览器。普通公开展示 7 天；自己写的分享会继续对自己可见。
+                        分享会写入数据库，不再只是保存在本地浏览器。未收藏的分享公开展示 7 天，到期后将被清理；收藏后可继续查看。
                     </div>
 
                     <div>

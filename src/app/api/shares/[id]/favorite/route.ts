@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import {
   countVisitorFavorites,
   MAX_TOTAL_FAVORITES,
@@ -37,17 +38,15 @@ export async function POST(request: Request, context: RouteContext) {
     const result = await withFavoriteMutationLock(
       visitorKey,
       async (transaction) => {
-        const share = await transaction.share.findFirst({
-          where: {
-            id,
-            deletedAt: null,
-          },
-          select: {
-            id: true,
-          },
-        });
+        // Hold the parent row until the favorite is committed. Cleanup takes
+        // FOR UPDATE, so either this insert wins or the Share is unavailable.
+        const shares = await transaction.$queryRaw<{ id: string }[]>`
+          SELECT "id" FROM "Share"
+          WHERE "id" = ${id} AND "deletedAt" IS NULL
+          FOR KEY SHARE
+        `;
 
-        if (!share) {
+        if (shares.length === 0) {
           return { status: "not-found" as const };
         }
 
@@ -107,7 +106,17 @@ export async function POST(request: Request, context: RouteContext) {
     return Response.json({
       ok: true,
     });
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2003" || error.code === "P2025")
+    ) {
+      return Response.json(
+        { error: "分享不存在或已不可用。" },
+        { status: 404 }
+      );
+    }
+
     return Response.json(
       { error: "收藏分享失败，请稍后再试。" },
       { status: 500 }
