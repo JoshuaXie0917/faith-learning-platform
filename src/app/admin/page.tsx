@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
@@ -18,6 +19,8 @@ const contentTypeLabels: Record<string, string> = {
 };
 
 export default async function AdminPage() {
+  await requireAdmin();
+
   const [totalContents, recentContents] = await Promise.all([
     prisma.content.count({
       where: {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { AudioBlobUploadField } from "@/components/AudioBlobUploadField";
@@ -85,6 +86,8 @@ function toJsonArrayText(value: FormDataEntryValue | null) {
 
 async function updateContent(formData: FormData) {
     "use server";
+
+    await requireAdmin();
 
     const id = String(formData.get("id") ?? "");
 
@@ -246,6 +249,8 @@ async function updateContent(formData: FormData) {
 }
 
 export default async function EditContentPage({ params }: Props) {
+    await requireAdmin();
+
     const { id } = await params;
 
     const [content, seriesList] = await Promise.all([

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
@@ -16,6 +17,8 @@ type Props = {
 
 async function assignContentToSeries(seriesId: string, formData: FormData) {
     "use server";
+
+    await requireAdmin();
 
     const contentId = String(formData.get("contentId") ?? "").trim();
 
@@ -51,6 +54,8 @@ async function assignContentToSeries(seriesId: string, formData: FormData) {
 }
 
 export default async function AdminSeriesPage({ params }: Props) {
+    await requireAdmin();
+
     const { id } = await params;
     const series = await prisma.series.findFirst({
         where: { id, deletedAt: null },

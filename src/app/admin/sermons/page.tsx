@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
@@ -42,6 +43,8 @@ const typeFilters = [
 async function deleteContent(formData: FormData) {
   "use server";
 
+  await requireAdmin();
+
   const id = String(formData.get("id") ?? "");
 
   if (!id) return;
@@ -59,6 +62,8 @@ async function deleteContent(formData: FormData) {
 }
 
 export default async function AdminSermonsPage({ searchParams }: Props) {
+  await requireAdmin();
+
   const params = await searchParams;
 
   const activeKeyword = typeof params.q === "string" ? params.q.trim() : "";

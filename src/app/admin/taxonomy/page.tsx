@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { revalidatePath } from "next/cache";
@@ -36,6 +37,8 @@ function getSaveResultUrl(result: "success" | "error", seriesId: string) {
 async function createSeries(formData: FormData) {
     "use server";
 
+    await requireAdmin();
+
     const title = String(formData.get("title") ?? "").trim();
 
     if (!title) {
@@ -69,6 +72,8 @@ async function createSeries(formData: FormData) {
 
 async function updateSeries(formData: FormData) {
     "use server";
+
+    await requireAdmin();
 
     const id = String(formData.get("id") ?? "");
     const title = String(formData.get("title") ?? "").trim();
@@ -139,6 +144,8 @@ async function updateSeries(formData: FormData) {
 }
 
 export default async function AdminTaxonomyPage({ searchParams }: Props) {
+    await requireAdmin();
+
     const params = await searchParams;
     const saveResult = typeof params.saveResult === "string" ? params.saveResult : "";
     const savedSeriesId = typeof params.seriesId === "string" ? params.seriesId : "";

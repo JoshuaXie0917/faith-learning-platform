@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { AudioBlobUploadField } from "@/components/AudioBlobUploadField";
 export const runtime = "nodejs";
@@ -61,6 +62,8 @@ function toJsonArrayText(value: FormDataEntryValue | null) {
 
 async function createContent(formData: FormData) {
     "use server";
+
+    await requireAdmin();
 
     const title = String(formData.get("title") ?? "").trim();
     const contentType = String(formData.get("contentType") ?? "recording");
@@ -182,6 +185,8 @@ async function createContent(formData: FormData) {
 }
 
 export default async function NewContentPage() {
+    await requireAdmin();
+
     const seriesList = await prisma.series.findMany({
         where: {
             deletedAt: null,
