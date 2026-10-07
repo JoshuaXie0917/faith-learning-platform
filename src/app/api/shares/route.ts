@@ -6,6 +6,8 @@ export const dynamic = "force-dynamic";
 
 const SHARE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SHARE_LENGTH = 800;
+const MAX_NAME_LENGTH = 50;
+const MAX_TITLE_LENGTH = 100;
 
 function normalizeVisitorKey(value: string) {
   return value.trim().slice(0, 120);
@@ -133,6 +135,14 @@ export async function POST(request: Request) {
 
     if (!title) {
       return Response.json({ error: "请填写分享主题。" }, { status: 400 });
+    }
+
+    if (Array.from(name).length > MAX_NAME_LENGTH) {
+      return Response.json({ error: "姓名最多 50 个字。" }, { status: 400 });
+    }
+
+    if (Array.from(title).length > MAX_TITLE_LENGTH) {
+      return Response.json({ error: "分享主题最多 100 个字。" }, { status: 400 });
     }
 
     if (!content) {

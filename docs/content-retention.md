@@ -27,9 +27,10 @@ Rules live in `src/lib/contentRetention.ts` (visibility) and `src/lib/contentRet
 - **Deletion** runs only when all of these hold; otherwise the route returns `enabled: false` with a reason and writes nothing:
   - `CONTENT_RETENTION_DELETE_ENABLED` is exactly `true`;
   - `CONTENT_RETENTION_DELETE_NOT_BEFORE` is a UTC ISO timestamp (for example `2027-03-30T03:00:00Z`); missing or malformed fails closed;
+  - `BLOB_READ_WRITE_TOKEN` is present and well formed (`vercel_blob_rw_<storeId>_…`); it defines the only Blob store the job may clean, so missing or malformed fails closed;
   - the current time is at or after both that setting and the legacy floor.
 - **Phase 1** (one transaction, at most 25 rows): transaction-scoped advisory lock `(17474, 2)` against overlapping runs, `SELECT … FOR UPDATE SKIP LOCKED`, then a `DELETE` that rechecks the full rule (including favorites). In-scope Blob URLs of deleted rows go into `BlobDeletionOutbox`. No Blob call happens inside the transaction.
-- **Phase 2** (after commit, at most 25 outbox rows): each row is claimed for 10 minutes. The Blob is deleted only if its URL is in this project's public Blob store under `resources/` and no remaining Content row (soft-deleted included: `resourceUrl`, `description`, `contentBody`) or Series row (`imageUrl`, `description`) still contains its path, in any spelling. Failures retry with backoff (1 hour doubling, up to 24 hours) and stop after 8 attempts (`outbox.stuck`).
+- **Phase 2** (after commit, at most 25 outbox rows): each row is claimed for 10 minutes. The Blob is deleted only if its URL is on this project's own public Blob host (`<storeId>.public.blob.vercel-storage.com`, from the token's store ID) under `resources/` and no remaining Content row (soft-deleted included: `resourceUrl`, `description`, `contentBody`) or Series row (`imageUrl`, `description`) still contains its path, in any spelling. Failures retry with backoff (1 hour doubling, up to 24 hours) and stop after 8 attempts (`outbox.stuck`).
 - **Not in scope:** Series images, abandoned or replaced uploads, and Blobs referenced only from text fields are never deleted by this job.
 
 ## Enabling deletion (on or after 2027-03-30)

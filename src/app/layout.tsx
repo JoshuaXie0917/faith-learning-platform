@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SiteFooter } from "@/components/SiteFooter";
+import { VisitorKeySync } from "@/components/VisitorKeySync";
 
 export const metadata: Metadata = {
   title: "四月花",
@@ -18,6 +19,7 @@ export default function RootLayout({
         className="bg-stone-50 text-stone-900"
         suppressHydrationWarning
       >
+        <VisitorKeySync />
         {children}
         <SiteFooter />
       </body>

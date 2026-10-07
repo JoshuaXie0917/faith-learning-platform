@@ -14,7 +14,7 @@ export const OUTBOX_BATCH_LIMIT = 25;
 export const OUTBOX_MAX_ATTEMPTS = 8;
 const OUTBOX_CLAIM_MS = 10 * 60 * 1000;
 const RESOURCE_PREFIX = "resources/";
-const PROJECT_BLOB_HOST = /^[a-z0-9]+\.public\.blob\.vercel-storage\.com$/;
+const BLOB_PUBLIC_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 export type DeleteBlob = (url: string, options: { token: string }) => Promise<unknown>;
@@ -44,11 +44,22 @@ type OutboxSummary = {
   stuck: number;
 };
 
-// A Content Blob may be deleted only when it is in this project's public Blob store
-// under resources/ (where AudioBlobUploadField uploads). Series covers live under
-// series-images/ and are never touched here.
-export function getBlobPathnameInScope(url: string | null | undefined): string | null {
-  if (!url) return null;
+// This project's public Blob host, derived from the store ID inside
+// BLOB_READ_WRITE_TOKEN (vercel_blob_rw_<storeId>_<secret>), the same credential
+// that deletes Blobs. Null when the token is missing or malformed.
+export function getProjectBlobHost(token: string | undefined): string | null {
+  const parts = (token ?? "").trim().split("_");
+  if (parts.length < 5 || parts[0] !== "vercel" || parts[1] !== "blob" || parts[2] !== "rw") return null;
+  const storeId = parts[3];
+  if (!/^[A-Za-z0-9]{1,64}$/.test(storeId)) return null;
+  return `${storeId.toLowerCase()}${BLOB_PUBLIC_HOST_SUFFIX}`;
+}
+
+// A Content Blob may be deleted only when it is in this project's own public Blob
+// store under resources/ (where AudioBlobUploadField uploads). Series covers live
+// under series-images/ and are never touched here.
+export function getBlobPathnameInScope(url: string | null | undefined, projectHost: string | null): string | null {
+  if (!url || !projectHost) return null;
 
   let parsed: URL;
   try {
@@ -64,7 +75,7 @@ export function getBlobPathnameInScope(url: string | null | undefined): string |
     parsed.port ||
     parsed.search ||
     parsed.hash ||
-    !PROJECT_BLOB_HOST.test(parsed.hostname)
+    parsed.hostname !== projectHost
   ) {
     return null;
   }
@@ -90,8 +101,9 @@ export function getBlobPathnameInScope(url: string | null | undefined): string |
   return pathname;
 }
 
-// Deletion needs CONTENT_RETENTION_DELETE_ENABLED=true and a well-formed
-// CONTENT_RETENTION_DELETE_NOT_BEFORE (UTC ISO). Anything missing or malformed keeps
+// Deletion needs CONTENT_RETENTION_DELETE_ENABLED=true, a well-formed
+// CONTENT_RETENTION_DELETE_NOT_BEFORE (UTC ISO) and a well-formed BLOB_READ_WRITE_TOKEN
+// (it defines which Blob store may be cleaned). Anything missing or malformed keeps
 // deletion off. The legacy floor applies even if the setting is earlier.
 export function getDeletionGate(env: RetentionEnv, now: Date) {
   if (env.CONTENT_RETENTION_DELETE_ENABLED !== "true") {
@@ -108,6 +120,10 @@ export function getDeletionGate(env: RetentionEnv, now: Date) {
     parsed.toISOString().slice(0, 19) !== raw.slice(0, 19)
   ) {
     return { allowed: false as const, reason: "not-before-malformed" };
+  }
+
+  if (!getProjectBlobHost(env.BLOB_READ_WRITE_TOKEN)) {
+    return { allowed: false as const, reason: "blob-token-missing" };
   }
 
   const notBefore = new Date(Math.max(parsed.getTime(), LEGACY_RETENTION_FLOOR.getTime()));
@@ -211,14 +227,14 @@ export async function dryRunContentRetention(prisma: PrismaClient, env: Retentio
       softDeleted: row.deletedAt !== null,
       favoriteCount: row.favoriteCount,
       hasResourceUrl: Boolean(row.resourceUrl?.trim()),
-      blobInScope: getBlobPathnameInScope(row.resourceUrl) !== null,
+      blobInScope: getBlobPathnameInScope(row.resourceUrl, getProjectBlobHost(env.BLOB_READ_WRITE_TOKEN)) !== null,
     })),
     outbox: await countOutbox(prisma),
   };
 }
 
 // Phase 1: one transaction, at most 25 rows, no Blob calls.
-export async function deleteRetentionBatch(prisma: PrismaClient, now: Date) {
+export async function deleteRetentionBatch(prisma: PrismaClient, now: Date, projectHost: string) {
   const cutoff = getOverdueCutoff(now);
   const empty = { deletedIds: [] as string[], enqueuedBlobs: 0 };
   if (!cutoff) return empty;
@@ -252,7 +268,7 @@ export async function deleteRetentionBatch(prisma: PrismaClient, now: Date) {
 
       const blobs = new Map<string, { url: string; pathname: string; contentId: string }>();
       for (const row of deleted) {
-        const pathname = getBlobPathnameInScope(row.resourceUrl);
+        const pathname = getBlobPathnameInScope(row.resourceUrl, projectHost);
         if (row.resourceUrl && pathname && !blobs.has(row.resourceUrl)) {
           blobs.set(row.resourceUrl, { url: row.resourceUrl, pathname, contentId: row.id });
         }
@@ -287,7 +303,8 @@ export async function processBlobOutbox(
     tokenMissing: false,
   };
 
-  if (!token) {
+  const projectHost = getProjectBlobHost(token);
+  if (!token || !projectHost) {
     return { ...summary, tokenMissing: true, ...(await countOutbox(prisma)) };
   }
 
@@ -310,7 +327,7 @@ export async function processBlobOutbox(
     summary.claimed += 1;
     const mine = { id: row.id, claimedUntil };
 
-    const pathname = getBlobPathnameInScope(row.url);
+    const pathname = getBlobPathnameInScope(row.url, projectHost);
     if (!pathname) {
       await prisma.blobDeletionOutbox.deleteMany({ where: mine });
       summary.skippedOutOfScope += 1;
@@ -384,7 +401,12 @@ export async function handleContentRetentionRequest(request: Request, deps: Rete
       return Response.json({ enabled: false, reason: gate.reason, deletedCount: 0, deletedIds: [] });
     }
 
-    const batch = await deleteRetentionBatch(deps.prisma, now);
+    const projectHost = getProjectBlobHost(deps.env.BLOB_READ_WRITE_TOKEN);
+    if (!projectHost) {
+      return Response.json({ enabled: false, reason: "blob-token-missing", deletedCount: 0, deletedIds: [] });
+    }
+
+    const batch = await deleteRetentionBatch(deps.prisma, now, projectHost);
     const outbox = await processBlobOutbox(
       deps.prisma,
       now,

@@ -55,11 +55,14 @@ export default function LoginPage() {
         return;
       }
 
+      // The signed HttpOnly cookie set by the server is the only admin state.
+      // Remove display flags left by older versions.
       localStorage.removeItem("currentUser");
-      localStorage.setItem("adminSession", "true");
-      localStorage.setItem("adminName", data.user?.name ?? trimmedName);
+      localStorage.removeItem("adminSession");
+      localStorage.removeItem("adminName");
 
       router.push("/admin");
+      router.refresh();
     } catch {
       setError("登录请求失败，请稍后再试。");
     } finally {

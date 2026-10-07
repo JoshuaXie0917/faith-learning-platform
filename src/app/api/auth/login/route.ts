@@ -5,7 +5,16 @@ import {
   ADMIN_SESSION_COOKIE_NAME,
   createAdminSessionToken,
   getAdminSessionCookieOptions,
+  safeEqualStrings,
 } from "@/lib/adminSession";
+import {
+  clearLoginAttempts,
+  getClientAddress,
+  getThrottleSecret,
+  hashClientAddress,
+  pruneLoginThrottle,
+  registerLoginAttempt,
+} from "@/lib/loginThrottle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,12 +48,30 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password !== adminPassword) {
+    // Throttle per client before the password is checked; the stored key is an
+    // HMAC of the client address, never the address itself.
+    const now = new Date();
+    const throttleKey = hashClientAddress(getClientAddress(request.headers), getThrottleSecret());
+
+    await pruneLoginThrottle(prisma, now).catch(() => undefined);
+
+    const attempt = await registerLoginAttempt(prisma, throttleKey, now);
+
+    if (!attempt.allowed) {
       return NextResponse.json(
-        { error: "管理员密码不正确。" },
+        { error: "登录尝试次数过多，请稍后再试。" },
+        { status: 429, headers: { "Retry-After": String(attempt.retryAfterSeconds) } }
+      );
+    }
+
+    if (!safeEqualStrings(password, adminPassword)) {
+      return NextResponse.json(
+        { error: "管理员姓名或密码不正确。" },
         { status: 401 }
       );
     }
+
+    await clearLoginAttempts(prisma, throttleKey);
 
     const nameKey = normalizeName(name);
 
@@ -93,7 +120,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("管理员登录失败：", error);
+    console.error("管理员登录失败：", error instanceof Error ? error.message : "unknown error");
 
     return NextResponse.json(
       { error: "管理员登录失败，请稍后再试。" },

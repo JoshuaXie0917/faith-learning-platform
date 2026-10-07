@@ -155,6 +155,18 @@ model BlobDeletionOutbox {
   @@index([claimedUntil, createdAt])
 }
 
+// Admin login throttling (src/lib/loginThrottle.ts). "key" is an HMAC of the
+// client address; raw addresses are never stored. Stale rows are pruned on login.
+model LoginThrottle {
+  key          String    @id
+  attempts     Int       @default(0)
+  windowStart  DateTime
+  blockedUntil DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@index([updatedAt])
+}
+
 model Share {
   id String @id @default(cuid())
 

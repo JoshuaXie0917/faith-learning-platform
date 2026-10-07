@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 
 export const ADMIN_SESSION_COOKIE_NAME = "admin_session";
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
@@ -7,6 +7,15 @@ function getAdminPassword() {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   return adminPassword ? adminPassword : null;
+}
+
+// Constant-time string comparison. Both sides are hashed first, so inputs of
+// different lengths are compared in the same time without leaking the length.
+export function safeEqualStrings(supplied: string, expected: string) {
+  const suppliedHash = createHash("sha256").update(supplied, "utf8").digest();
+  const expectedHash = createHash("sha256").update(expected, "utf8").digest();
+
+  return timingSafeEqual(suppliedHash, expectedHash);
 }
 
 function signPayload(payload: string, adminPassword: string) {
