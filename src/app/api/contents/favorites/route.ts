@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
 import {
   countVisitorFavorites,
   MAX_TOTAL_FAVORITES,
@@ -105,8 +106,7 @@ export async function POST(request: Request) {
             id: {
               in: contentIds,
             },
-            status: "published",
-            deletedAt: null,
+            ...publicContentWhere(new Date(), visitorKey),
           },
           select: {
             id: true,

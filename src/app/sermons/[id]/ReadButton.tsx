@@ -1,27 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getOrCreateVisitorKey } from "@/lib/visitorKeyClient";
 
 type ReadButtonProps = {
   contentId: string;
 };
-
-function getOrCreateVisitorKey() {
-  const savedKey = localStorage.getItem("readVisitorKey");
-
-  if (savedKey) {
-    return savedKey;
-  }
-
-  const newKey =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  localStorage.setItem("readVisitorKey", newKey);
-
-  return newKey;
-}
 
 function readContentIdsFromStorage() {
   try {

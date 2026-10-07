@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
+import { getRequestVisitorKey } from "@/lib/visitorKey";
 import {
   formatContentDate,
   getContentTypeLabel,
@@ -9,11 +11,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const visitorKey = await getRequestVisitorKey();
   const contents = await prisma.content.findMany({
-    where: {
-      status: "published",
-      deletedAt: null,
-    },
+    where: publicContentWhere(new Date(), visitorKey),
     orderBy: {
       date: "desc",
     },

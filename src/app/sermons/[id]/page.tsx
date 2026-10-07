@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReadButton } from "./ReadButton";
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
+import { getRequestVisitorKey } from "@/lib/visitorKey";
 import {
   formatContentDate,
   getContentTypeLabel,
@@ -45,12 +47,12 @@ function isAudioResource(resourceUrl: string, contentType: string) {
 
 export default async function SermonDetailPage({ params }: Props) {
   const { id } = await params;
+  const visibleWhere = publicContentWhere(new Date(), await getRequestVisitorKey());
 
   const content = await prisma.content.findFirst({
     where: {
       id,
-      status: "published",
-      deletedAt: null,
+      ...visibleWhere,
     },
     select: {
       id: true,
@@ -89,10 +91,7 @@ export default async function SermonDetailPage({ params }: Props) {
     : content.seriesRef?.imageUrl?.trim() ?? "";
 
   const allContents = await prisma.content.findMany({
-    where: {
-      status: "published",
-      deletedAt: null,
-    },
+    where: visibleWhere,
     orderBy: {
       date: "desc",
     },

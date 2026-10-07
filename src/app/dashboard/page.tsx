@@ -10,6 +10,7 @@ import {
   loadAndMigrateContentFavorites,
   readLegacyContentFavoriteIds,
 } from "@/lib/contentFavoritesClient";
+import { getOrCreateVisitorKey } from "@/lib/visitorKeyClient";
 
 type PublicContent = {
   id: string;
@@ -41,23 +42,6 @@ type DatabaseShare = {
   isOwner: boolean;
   isFavorite: boolean;
 };
-
-function getOrCreateVisitorKey() {
-  const savedKey = localStorage.getItem("readVisitorKey");
-
-  if (savedKey) {
-    return savedKey;
-  }
-
-  const newKey =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  localStorage.setItem("readVisitorKey", newKey);
-
-  return newKey;
-}
 
 export default function DashboardPage() {
   const [favoriteSermonIds, setFavoriteSermonIds] = useState<string[]>([]);
@@ -94,6 +78,8 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadContents() {
       try {
+        // Sets the visitor cookie first, so overdue favorites are included.
+        getOrCreateVisitorKey();
         const response = await fetch("/api/contents");
         const data = (await response.json()) as { contents?: PublicContent[] };
 

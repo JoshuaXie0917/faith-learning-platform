@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,8 +34,7 @@ export async function POST(request: Request, context: RouteContext) {
     const content = await prisma.content.findFirst({
       where: {
         id,
-        status: "published",
-        deletedAt: null,
+        ...publicContentWhere(new Date(), String(body.visitorKey ?? "")),
       },
       select: {
         id: true,

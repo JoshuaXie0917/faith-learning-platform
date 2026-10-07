@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
+import { getRequestVisitorKey } from "@/lib/visitorKey";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 
@@ -7,6 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function PublicSeriesPage() {
+  const visibleWhere = publicContentWhere(new Date(), await getRequestVisitorKey());
   const seriesList = await prisma.series.findMany({
     where: { deletedAt: null },
     orderBy: { title: "asc" },
@@ -18,10 +21,7 @@ export default async function PublicSeriesPage() {
       _count: {
         select: {
           contents: {
-            where: {
-              status: "published",
-              deletedAt: null,
-            },
+            where: visibleWhere,
           },
         },
       },

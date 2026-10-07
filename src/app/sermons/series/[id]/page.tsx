@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { publicContentWhere } from "@/lib/contentRetention";
+import { getRequestVisitorKey } from "@/lib/visitorKey";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
@@ -31,8 +33,7 @@ export default async function PublicSeriesDetailPage({ params }: Props) {
   const contents = await prisma.content.findMany({
     where: {
       seriesId: series.id,
-      status: "published",
-      deletedAt: null,
+      ...publicContentWhere(new Date(), await getRequestVisitorKey()),
     },
     orderBy: { date: "desc" },
     select: {

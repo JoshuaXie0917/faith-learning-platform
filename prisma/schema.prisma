@@ -64,9 +64,11 @@ model Content {
 
   reads     ContentRead[]
   favorites ContentFavorite[]
+  checkIns  CheckIn[]
 
   @@index([speakerId])
   @@index([seriesId])
+  @@index([createdAt, id])
 }
 
 model Speaker {
@@ -126,13 +128,31 @@ model ContentFavorite {
 model CheckIn {
   id              String   @id @default(cuid())
   userId          String
-  sermonId        String
+  sermonId        String?
   listenedAt      DateTime @default(now())
   progressPercent Int      @default(100)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content Content? @relation(fields: [sermonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, sermonId])
+  @@index([sermonId])
+}
+
+// Blobs of hard-deleted Content, deleted by the retention job after the Content
+// transaction commits (see docs/content-retention.md). Rows are removed once handled.
+model BlobDeletionOutbox {
+  id           String    @id @default(cuid())
+  url          String    @unique
+  pathname     String
+  contentId    String // the deleted Content row (no FK: it no longer exists)
+  attempts     Int       @default(0)
+  lastError    String? // sanitized, never contains the URL
+  claimedUntil DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([claimedUntil, createdAt])
 }
 
 model Share {

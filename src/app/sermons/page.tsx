@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { isContentExpired } from "@/lib/contentRetention";
+import { getOrCreateVisitorKey } from "@/lib/visitorKeyClient";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 import {
@@ -147,23 +147,6 @@ function readLocalSharesFromStorage() {
   }
 }
 
-function getOrCreateVisitorKey() {
-  const savedKey = localStorage.getItem("readVisitorKey");
-
-  if (savedKey) {
-    return savedKey;
-  }
-
-  const newKey =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  localStorage.setItem("readVisitorKey", newKey);
-
-  return newKey;
-}
-
 export default function SermonsPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedSpeakerId, setSelectedSpeakerId] = useState("all");
@@ -218,6 +201,8 @@ export default function SermonsPage() {
   useEffect(() => {
     async function loadContents() {
       try {
+        // Sets the visitor cookie first, so overdue favorites are included.
+        getOrCreateVisitorKey();
         const response = await fetch("/api/contents");
         const data = (await response.json()) as { contents?: PublicContent[] };
 
@@ -266,14 +251,8 @@ export default function SermonsPage() {
     return () => window.clearTimeout(timer);
   }, [favoriteMessage]);
 
-  const visibleSermons = useMemo(() => {
-    return officialContents.filter((sermon) => {
-      const isExpired = isContentExpired({ date: sermon.rawDate });
-      const isFavorite = favoriteSermonIds.includes(sermon.id);
-
-      return !isExpired || isFavorite;
-    });
-  }, [favoriteSermonIds, officialContents]);
+  // Visibility (including the six-month retention rule) is decided by the server.
+  const visibleSermons = officialContents;
 
   const speakerOptions = useMemo(() => {
     const speakers = new Map<string, string>();
