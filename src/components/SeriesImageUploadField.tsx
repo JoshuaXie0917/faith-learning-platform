@@ -218,7 +218,7 @@ export function SeriesImageUploadField({
                     disabled={isUploading}
                     aria-label={imageUrl ? "更换系列封面" : "上传系列封面"}
                     title={imageUrl ? "更换系列封面" : "上传系列封面"}
-                    className="absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white text-lg font-semibold leading-none text-stone-800 shadow-sm transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white text-lg font-semibold leading-none text-stone-800 shadow-sm transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 max-md:h-11 max-md:w-11 max-md:text-xl"
                 >
                     {isUploading ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900" />

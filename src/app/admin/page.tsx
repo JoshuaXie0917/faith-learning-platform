@@ -69,7 +69,7 @@ export default async function AdminPage() {
         action={
           <Link
             href="/admin/sermons"
-            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
           >
             管理内容
           </Link>
@@ -101,7 +101,7 @@ export default async function AdminPage() {
 
             <Link
               href="/admin/sermons"
-              className="inline-flex w-full justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900 max-md:min-h-11 sm:w-auto"
             >
               查看全部 →
             </Link>

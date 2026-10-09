@@ -72,21 +72,21 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-[#faf5ef] text-stone-800">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-xl font-semibold tracking-wide">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-6 sm:px-6">
+        <Link href="/" className="inline-flex items-center text-xl font-semibold tracking-wide max-md:min-h-11">
           四月花
         </Link>
 
         <Link
           href="/dashboard"
-          className="text-sm text-stone-600 transition hover:text-stone-900"
+          className="inline-flex items-center text-sm text-stone-600 transition hover:text-stone-900 max-md:min-h-11"
         >
           返回学习中心
         </Link>
       </header>
 
-      <section className="mx-auto flex max-w-md flex-col px-6 pt-16">
-        <div className="rounded-3xl border border-stone-200 bg-white/85 p-8 shadow-sm">
+      <section className="mx-auto flex max-w-md flex-col px-4 pb-10 pt-8 sm:px-6 sm:pb-0 sm:pt-16">
+        <div className="rounded-3xl border border-stone-200 bg-white/85 p-6 shadow-sm sm:p-8">
           <p className="mb-4 text-sm text-amber-800">管理员入口</p>
 
           <h1 className="mb-3 text-3xl font-semibold text-stone-900">
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   setError("");
                 }}
                 placeholder="请输入管理员姓名"
-                className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
               />
             </div>
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
                   setError("");
                 }}
                 placeholder="请输入管理员密码"
-                className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
               />
             </div>
 

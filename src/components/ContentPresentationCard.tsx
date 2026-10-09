@@ -86,7 +86,7 @@ function CardDetails({
       <div className="flex flex-wrap items-center gap-2">
         {series && (
           <span className="inline-flex max-w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 shadow-sm">
-            <span className="truncate">{series.title}</span>
+            <span className="min-w-0 md:truncate">{series.title}</span>
           </span>
         )}
         {content.contentTypeLabel && (
@@ -117,7 +117,7 @@ function CardDetails({
       {content.speaker?.trim() && (
         <div className={detailSpacing}>
           <span className="inline-flex max-w-full items-center rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
-            <span className="truncate">{content.speaker}</span>
+            <span className="min-w-0 md:truncate">{content.speaker}</span>
           </span>
         </div>
       )}
@@ -177,14 +177,14 @@ function PresentationGrid({
   const gridClassName = series
     ? actions
       ? roomy
-        ? "grid gap-5 sm:grid-cols-[11rem_minmax(0,1fr)] xl:grid-cols-[10.5rem_minmax(0,1fr)_minmax(14rem,0.85fr)_auto]"
-        : "grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[9rem_minmax(0,1fr)_minmax(13rem,0.8fr)_auto]"
-      : "grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[9rem_minmax(0,1fr)_minmax(13rem,0.8fr)]"
+        ? "grid grid-cols-1 gap-5 sm:grid-cols-[11rem_minmax(0,1fr)] xl:grid-cols-[10.5rem_minmax(0,1fr)_minmax(14rem,0.85fr)_auto]"
+        : "grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[9rem_minmax(0,1fr)_minmax(13rem,0.8fr)_auto]"
+      : "grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[9rem_minmax(0,1fr)_minmax(13rem,0.8fr)]"
     : actions
       ? roomy
-        ? "grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(14rem,0.85fr)_auto]"
-        : "grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,0.8fr)_auto]"
-      : "grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.8fr)]";
+        ? "grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(14rem,0.85fr)_auto]"
+        : "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,0.8fr)_auto]"
+      : "grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.8fr)]";
 
   return (
     <div className={gridClassName}>
@@ -230,9 +230,9 @@ export function ContentPresentationCard({
   }
 
   const primaryActionClassName =
-    "inline-flex w-full items-center justify-center rounded-lg bg-stone-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700";
+    "inline-flex w-full items-center justify-center rounded-lg bg-stone-900 px-3 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700";
   const secondaryActionClassName =
-    "inline-flex w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950";
+    "inline-flex w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-3 py-2.5 max-md:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950";
   const editAction = (
     <Link
       href={`/admin/sermons/${content.id}/edit`}

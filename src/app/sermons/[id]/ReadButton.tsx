@@ -104,7 +104,7 @@ export function ReadButton({ contentId }: ReadButtonProps) {
           type="button"
           disabled={isSubmitting}
           onClick={handleRead}
-          className={`inline-flex w-full justify-center rounded-full px-5 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto ${
+          className={`inline-flex w-full justify-center rounded-full px-5 py-2.5 max-md:py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto ${
             isRead
               ? "bg-green-100 text-green-800 hover:bg-green-200"
               : "bg-stone-900 text-white hover:bg-stone-700"

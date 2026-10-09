@@ -137,7 +137,7 @@ export default function ShareDetailPage() {
                     action={
                         <Link
                             href="/sermons"
-                            className="inline-flex w-full justify-center rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900 sm:w-auto"
+                            className="inline-flex w-full justify-center rounded-full border border-stone-200 bg-white px-5 py-2.5 max-md:py-3 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900 sm:w-auto"
                         >
                             返回真理集录
                         </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 type NavbarClientProps = {
@@ -15,7 +15,14 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
 
   const [loggedOut, setLoggedOut] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
   const isAdmin = isAdminFromServer && !loggedOut;
+
+  // The admin links do not fit beside the logo on tablets, so admins keep the
+  // menu button up to the lg breakpoint; everyone else switches at md.
+  const desktopOnly = isAdmin ? "lg:flex" : "md:flex";
+  const mobileOnly = isAdmin ? "lg:hidden" : "md:hidden";
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -24,6 +31,23 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
   useEffect(() => {
     setLoggedOut(false);
   }, [isAdminFromServer]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.isComposing) return;
+
+      // Return focus to the menu button only if it was inside the menu, which is
+      // about to disappear.
+      const focusWasInMenu = menuRef.current?.contains(document.activeElement) ?? false;
+      setIsMenuOpen(false);
+      if (focusWasInMenu) menuButtonRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isMenuOpen]);
 
   function isActive(href: string) {
     if (href === "/" || href === "/admin") {
@@ -68,7 +92,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
         <Link
           href="/"
           onClick={() => setIsMenuOpen(false)}
-          className="flex items-center gap-2 font-semibold text-stone-900"
+          className="flex items-center gap-2 font-semibold text-stone-900 max-md:min-h-11"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200 text-sm font-bold text-stone-900">
             花
@@ -76,7 +100,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
           <span className="text-lg">四月花</span>
         </Link>
 
-        <nav className="hidden items-center gap-2 md:flex">
+        <nav aria-label="主导航" className={`hidden items-center gap-2 ${desktopOnly}`}>
           {mainLinks.map((link) => (
             <Link
               key={link.href}
@@ -105,7 +129,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
             ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className={`hidden items-center gap-3 ${desktopOnly}`}>
           {isAdmin ? (
             <>
               <span className="max-w-[180px] truncate rounded-full bg-amber-50 px-4 py-2 text-sm text-amber-800">
@@ -131,11 +155,13 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
         </div>
 
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={() => setIsMenuOpen((value) => !value)}
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm md:hidden"
+          className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm ${mobileOnly}`}
           aria-label={isMenuOpen ? "关闭导航菜单" : "打开导航菜单"}
           aria-expanded={isMenuOpen}
+          aria-controls="mobile-navigation"
         >
           <span className="flex flex-col gap-1.5">
             <span
@@ -154,63 +180,68 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
         </button>
       </div>
 
-      {isMenuOpen && (
-        <div className="border-t border-stone-200 bg-[#faf7f2] px-4 py-4 shadow-sm md:hidden">
-          <div className="mx-auto max-w-6xl space-y-3">
-            {mainLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMenuOpen(false)}
-                className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
-                  ? "bg-stone-900 text-white"
-                  : "bg-white text-stone-700"
-                  }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+      {/* Scrolls on short screens; 73px is the header height (48px button, padding, border). */}
+      <nav
+        ref={menuRef}
+        id="mobile-navigation"
+        aria-label="导航菜单"
+        hidden={!isMenuOpen}
+        className={`max-h-[calc(100vh-73px)] overflow-y-auto overscroll-contain border-t border-stone-200 bg-[#faf7f2] px-4 py-4 shadow-sm supports-[height:100svh]:max-h-[calc(100svh-73px)] sm:px-6 ${mobileOnly}`}
+      >
+        <div className="mx-auto max-w-6xl space-y-3">
+          {mainLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setIsMenuOpen(false)}
+              className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
+                ? "bg-stone-900 text-white"
+                : "bg-white text-stone-700"
+                }`}
+            >
+              {link.label}
+            </Link>
+          ))}
 
-            {isAdmin ? (
-              <div className="space-y-3 border-t border-stone-200 pt-3">
-                <p className="px-1 text-sm text-amber-700">
-                  管理员模式
-                </p>
+          {isAdmin ? (
+            <div className="space-y-3 border-t border-stone-200 pt-3">
+              <p className="px-1 text-sm text-amber-700">
+                管理员模式
+              </p>
 
-                {adminLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
-                      ? "bg-amber-700 text-white"
-                      : "bg-white text-stone-700"
-                      }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="block w-full rounded-2xl bg-white px-4 py-3 text-left text-base text-stone-700"
+              {adminLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block rounded-2xl px-4 py-3 text-base transition ${isActive(link.href)
+                    ? "bg-amber-700 text-white"
+                    : "bg-white text-stone-700"
+                    }`}
                 >
-                  退出管理
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setIsMenuOpen(false)}
-                className="block rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-700"
+                  {link.label}
+                </Link>
+              ))}
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="block w-full rounded-2xl bg-white px-4 py-3 text-left text-base text-stone-700"
               >
-                管理员登录
-              </Link>
-            )}
-          </div>
+                退出管理
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setIsMenuOpen(false)}
+              className="block rounded-2xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-700"
+            >
+              管理员登录
+            </Link>
+          )}
         </div>
-      )}
+      </nav>
     </header>
   );
 }

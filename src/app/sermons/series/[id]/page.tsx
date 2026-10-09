@@ -50,11 +50,11 @@ export default async function PublicSeriesDetailPage({ params }: Props) {
 
   return (
     <PageContainer>
-      <nav aria-label="返回" className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <Link href="/sermons/series" className="text-stone-500 transition hover:text-stone-800">
+      <nav aria-label="返回" className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-sm max-md:mb-2 max-md:gap-y-0">
+        <Link href="/sermons/series" className="inline-flex items-center text-stone-500 transition hover:text-stone-800 max-md:min-h-11">
           ← 返回系列
         </Link>
-        <Link href="/sermons" className="text-stone-500 transition hover:text-stone-800">
+        <Link href="/sermons" className="inline-flex items-center text-stone-500 transition hover:text-stone-800 max-md:min-h-11">
           真理集录
         </Link>
       </nav>

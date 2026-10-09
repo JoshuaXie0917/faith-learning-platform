@@ -36,7 +36,7 @@ export function FilterDisclosure({
       >
         <span className="min-w-0">
           <span className="block text-xs text-stone-500">{label}</span>
-          <span className="mt-0.5 block truncate text-sm font-medium text-stone-900">
+          <span className="mt-0.5 block text-sm font-medium text-stone-900 md:truncate">
             {activeLabel}
           </span>
         </span>
@@ -64,7 +64,7 @@ export function FilterDisclosure({
                   href={option.href}
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setIsOpen(false)}
-                  className={`min-w-0 rounded-lg px-3 py-2 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-stone-700 ${isActive
+                  className={`min-w-0 rounded-lg px-3 py-2 text-sm transition max-md:py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-stone-700 ${isActive
                     ? "bg-stone-900 font-medium text-white"
                     : "bg-white text-stone-700 hover:bg-stone-100"
                     }`}

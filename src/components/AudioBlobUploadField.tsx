@@ -87,11 +87,11 @@ export function AudioBlobUploadField({
             <input type="hidden" name="resourceUrl" value={resourceUrl} />
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700">
+                <label htmlFor="content-file" className="mb-2 block text-sm font-medium text-stone-700">
                     上传文件
                 </label>
 
-                <input ref={fileInputRef} type="file" className={inputClass} />
+                <input id="content-file" ref={fileInputRef} type="file" className={inputClass} />
 
                 <p className="mt-2 text-xs leading-6 text-stone-400">
                     可以上传音频、图片、PDF、Word、PPT 或其他学习资料。单个文件最大 100MB。
@@ -101,7 +101,7 @@ export function AudioBlobUploadField({
                     type="button"
                     onClick={handleUploadFile}
                     disabled={isUploading}
-                    className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+                    className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
                 >
                     {isUploading ? "正在上传..." : "上传文件"}
                 </button>

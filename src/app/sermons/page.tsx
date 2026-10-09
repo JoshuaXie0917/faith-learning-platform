@@ -473,31 +473,33 @@ export default function SermonsPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
-        <main className="min-w-0 space-y-5 sm:space-y-6">
+        <div className="min-w-0 space-y-5 sm:space-y-6">
           <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-            <label className="mb-2 block text-sm font-medium text-stone-700">
+            <label htmlFor="sermon-search" className="mb-2 block text-sm font-medium text-stone-700">
               搜索正式内容
             </label>
 
             <input
+              id="sermon-search"
               suppressHydrationWarning
               type="text"
               value={searchKeyword}
               onChange={(event) => setSearchKeyword(event.target.value)}
               placeholder="搜索标题、讲员、经文、链接、音频、图片、文件等"
-              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
             />
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700">
+                <label htmlFor="sermon-speaker" className="mb-2 block text-sm font-medium text-stone-700">
                   讲员
                 </label>
 
                 <select
+                  id="sermon-speaker"
                   value={selectedSpeakerId}
                   onChange={(event) => setSelectedSpeakerId(event.target.value)}
-                  className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600"
+                  className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
                 >
                   <option value="all">全部讲员</option>
 
@@ -545,7 +547,7 @@ export default function SermonsPage() {
                   setSearchKeyword("");
                   setSelectedSpeakerId("all");
                 }}
-                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
               >
                 清空搜索
               </button>
@@ -589,7 +591,7 @@ export default function SermonsPage() {
                             updatingFavoriteContentId === sermon.id ||
                             isMigratingFavorite
                           }
-                          className={`rounded-full px-3 py-2 text-xs transition ${isFavorite
+                          className={`rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isFavorite
                             ? "bg-amber-100 text-amber-800"
                             : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                             } disabled:cursor-not-allowed disabled:opacity-60`}
@@ -605,7 +607,7 @@ export default function SermonsPage() {
                         <button
                           type="button"
                           onClick={() => toggleReadContent(sermon.id)}
-                          className={`rounded-full px-3 py-2 text-xs transition ${isRead
+                          className={`rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isRead
                             ? "bg-green-100 text-green-800 hover:bg-green-200"
                             : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                             }`}
@@ -619,7 +621,7 @@ export default function SermonsPage() {
               })}
             </section>
           )}
-        </main>
+        </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
@@ -633,7 +635,7 @@ export default function SermonsPage() {
 
             <Link
               href="/sermons/shares"
-              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
             >
               查看全部分享
             </Link>
@@ -644,7 +646,7 @@ export default function SermonsPage() {
               <button
                 type="button"
                 onClick={() => setSidePanel("my-shares")}
-                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "my-shares"
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:text-sm ${sidePanel === "my-shares"
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500"
                   }`}
@@ -655,7 +657,7 @@ export default function SermonsPage() {
               <button
                 type="button"
                 onClick={() => setSidePanel("favorites")}
-                className={`flex-1 rounded-full px-3 py-2 text-xs transition ${sidePanel === "favorites"
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:text-sm ${sidePanel === "favorites"
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500"
                   }`}
@@ -706,7 +708,7 @@ export default function SermonsPage() {
                         <button
                           type="button"
                           onClick={() => toggleFavoriteShare(share.id)}
-                          className={`mt-3 rounded-full px-3 py-1.5 text-xs transition ${isFavorite
+                          className={`mt-3 rounded-full px-3 py-1.5 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isFavorite
                             ? "bg-amber-100 text-amber-800"
                             : "bg-white text-stone-600 hover:bg-stone-100"
                             }`}

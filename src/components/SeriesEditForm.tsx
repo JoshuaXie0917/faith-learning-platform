@@ -67,7 +67,7 @@ export function SeriesSaveButton() {
         <button
             type="submit"
             disabled={isDisabled}
-            className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-500"
+            className="rounded-xl bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-500"
         >
             {isUploading ? "上传封面中…" : pending ? "保存中…" : "保存系列"}
         </button>

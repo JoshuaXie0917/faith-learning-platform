@@ -190,13 +190,14 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                         name="title"
                         type="text"
                         required
+                        aria-label="新系列名称"
                         placeholder="输入系列名称"
-                        className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400 focus:bg-white"
+                        className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400 focus:bg-white max-md:text-base"
                     />
 
                     <button
                         type="submit"
-                        className="rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700"
+                        className="rounded-xl bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
                     >
                         新增系列
                     </button>
@@ -243,7 +244,7 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                                                     </span>
                                                     <Link
                                                         href={`/admin/taxonomy/${series.id}`}
-                                                        className="text-sm font-medium text-amber-800 underline underline-offset-4 transition hover:text-amber-950"
+                                                        className="inline-flex items-center text-sm font-medium text-amber-800 underline underline-offset-4 transition hover:text-amber-950 max-md:min-h-11"
                                                         aria-label={`管理${series.title}的内容`}
                                                     >
                                                         管理系列内容
@@ -274,7 +275,7 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                                                 name="description"
                                                 defaultValue={series.description ?? ""}
                                                 rows={4}
-                                                className="w-full resize-y rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm leading-6 text-stone-800 outline-none transition focus:border-stone-400 focus:bg-white"
+                                                className="w-full resize-y rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm leading-6 text-stone-800 outline-none transition focus:border-stone-400 focus:bg-white max-md:text-base"
                                                 placeholder="系列简介 / 描述"
                                             />
                                         </div>

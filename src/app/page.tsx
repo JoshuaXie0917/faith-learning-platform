@@ -10,23 +10,23 @@ export default function HomePage() {
 
       <div className="absolute inset-0 bg-[#faf5ef]/75" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6 py-10">
-        <header className="mb-24 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold tracking-tight">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <header className="mb-24 flex flex-wrap items-center justify-between gap-3">
+          <Link href="/" className="inline-flex shrink-0 items-center text-xl font-bold tracking-tight max-md:min-h-11">
             四月花
           </Link>
 
           <nav className="flex items-center gap-3">
             <Link
               href="/about"
-              className="rounded-full border border-amber-700 bg-amber-700 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:border-amber-800 hover:bg-amber-800"
+              className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-700 bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:border-amber-800 hover:bg-amber-800 max-md:min-h-11 sm:px-5"
             >
               信仰立场
             </Link>
 
             <Link
               href="/login"
-              className="rounded-full bg-stone-950 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
+              className="inline-flex items-center whitespace-nowrap rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800 max-md:min-h-11 sm:px-5"
             >
               管理员登录
             </Link>

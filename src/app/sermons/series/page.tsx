@@ -32,7 +32,7 @@ export default async function PublicSeriesPage() {
     <PageContainer>
       <Link
         href="/sermons"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800 max-md:mb-2 max-md:min-h-11"
       >
         ← 返回真理集录
       </Link>
@@ -44,7 +44,7 @@ export default async function PublicSeriesPage() {
           目前还没有系列。
         </p>
       ) : (
-        <section aria-label="系列列表" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section aria-label="系列列表" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {seriesList.map((series) => (
             <Link
               key={series.id}

@@ -26,13 +26,13 @@ const contentTypes = [
 ];
 
 const inputClass =
-    "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600";
+    "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base";
 
 const dateInputClass =
-    "w-[190px] max-w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 [color-scheme:light]";
+    "w-[190px] max-w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 [color-scheme:light] max-md:text-base";
 
 const textareaClass =
-    "w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600";
+    "w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base";
 
 function getTodayDate() {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -292,7 +292,7 @@ export default async function EditContentPage({ params }: Props) {
                 action={
                     <Link
                         href="/admin/sermons"
-                        className="inline-flex w-full justify-center rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900 sm:w-auto"
+                        className="inline-flex w-full justify-center rounded-full border border-stone-200 bg-white px-5 py-2.5 max-md:py-3 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900 sm:w-auto"
                     >
                         返回内容管理
                     </Link>
@@ -319,10 +319,11 @@ export default async function EditContentPage({ params }: Props) {
 
                     <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-title" className="mb-2 block text-sm font-medium text-stone-700">
                                 内容标题 <span className="text-red-500">*</span>
                             </label>
                             <input
+                                id="content-title"
                                 suppressHydrationWarning
                                 name="title"
                                 type="text"
@@ -334,10 +335,11 @@ export default async function EditContentPage({ params }: Props) {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-type" className="mb-2 block text-sm font-medium text-stone-700">
                                 内容类型 <span className="text-red-500">*</span>
                             </label>
                             <select
+                                id="content-type"
                                 suppressHydrationWarning
                                 name="contentType"
                                 defaultValue={content.contentType}
@@ -352,10 +354,11 @@ export default async function EditContentPage({ params }: Props) {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-date" className="mb-2 block text-sm font-medium text-stone-700">
                                 日期 <span className="text-red-500">*</span>
                             </label>
                             <input
+                                id="content-date"
                                 suppressHydrationWarning
                                 name="date"
                                 type="date"
@@ -367,11 +370,12 @@ export default async function EditContentPage({ params }: Props) {
                     </div>
 
                     <div className="mt-5 sm:mt-6">
-                        <label className="mb-2 block text-sm font-medium text-stone-700">
+                        <label htmlFor="content-body" className="mb-2 block text-sm font-medium text-stone-700">
                             主要内容 <span className="text-red-500">*</span>
                         </label>
 
                         <textarea
+                            id="content-body"
                             suppressHydrationWarning
                             name="contentBody"
                             rows={10}
@@ -397,10 +401,11 @@ export default async function EditContentPage({ params }: Props) {
 
                     <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-speaker" className="mb-2 block text-sm font-medium text-stone-700">
                                 作者 / 讲员
                             </label>
                             <input
+                                id="content-speaker"
                                 suppressHydrationWarning
                                 name="speaker"
                                 type="text"
@@ -411,10 +416,11 @@ export default async function EditContentPage({ params }: Props) {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-series" className="mb-2 block text-sm font-medium text-stone-700">
                                 系列
                             </label>
                             <select
+                                id="content-series"
                                 suppressHydrationWarning
                                 name="seriesId"
                                 defaultValue={content.seriesId ?? ""}
@@ -441,10 +447,11 @@ export default async function EditContentPage({ params }: Props) {
                     />
                     <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-stone-700">
+                            <label htmlFor="content-tags" className="mb-2 block text-sm font-medium text-stone-700">
                                 标签
                             </label>
                             <input
+                                id="content-tags"
                                 suppressHydrationWarning
                                 name="tags"
                                 type="text"
@@ -460,14 +467,14 @@ export default async function EditContentPage({ params }: Props) {
                     <div className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
                         <Link
                             href="/admin/sermons"
-                            className="inline-flex w-full justify-center rounded-full border border-stone-300 px-5 py-2.5 text-sm text-stone-600 transition hover:bg-stone-50 hover:text-stone-900 sm:w-auto"
+                            className="inline-flex w-full justify-center rounded-full border border-stone-300 px-5 py-2.5 max-md:py-3 text-sm text-stone-600 transition hover:bg-stone-50 hover:text-stone-900 sm:w-auto"
                         >
                             取消
                         </Link>
 
                         <button
                             type="submit"
-                            className="w-full rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+                            className="w-full rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
                         >
                             保存修改
                         </button>
