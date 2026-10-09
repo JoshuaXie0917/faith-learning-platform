@@ -86,14 +86,14 @@ export default function AboutPage() {
         <header className="mb-20 flex flex-wrap items-center justify-between gap-4">
           <Link
             href="/"
-            className="inline-flex items-center whitespace-nowrap rounded-full border border-stone-200 bg-white/75 px-4 py-2 text-sm text-stone-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-stone-950 max-md:min-h-11 sm:px-5"
+            className="inline-flex items-center whitespace-nowrap rounded-full border border-stone-200 bg-white/75 px-4 py-2 text-sm text-stone-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-stone-950 max-lg:min-h-11 sm:px-5"
           >
             返回首页
           </Link>
 
           <Link
             href="/dashboard"
-            className="inline-flex items-center whitespace-nowrap rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800 max-md:min-h-11 sm:px-5"
+            className="inline-flex items-center whitespace-nowrap rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800 max-lg:min-h-11 sm:px-5"
           >
             进入学习中心
           </Link>

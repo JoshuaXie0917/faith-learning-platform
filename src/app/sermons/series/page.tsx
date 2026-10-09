@@ -32,7 +32,7 @@ export default async function PublicSeriesPage() {
     <PageContainer>
       <Link
         href="/sermons"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800 max-md:mb-2 max-md:min-h-11"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800 max-lg:mb-2 max-lg:min-h-11"
       >
         ← 返回真理集录
       </Link>

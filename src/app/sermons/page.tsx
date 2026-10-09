@@ -547,7 +547,7 @@ export default function SermonsPage() {
                   setSearchKeyword("");
                   setSelectedSpeakerId("all");
                 }}
-                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
+                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
               >
                 清空搜索
               </button>
@@ -591,7 +591,7 @@ export default function SermonsPage() {
                             updatingFavoriteContentId === sermon.id ||
                             isMigratingFavorite
                           }
-                          className={`rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isFavorite
+                          className={`rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:px-4 max-lg:text-sm ${isFavorite
                             ? "bg-amber-100 text-amber-800"
                             : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                             } disabled:cursor-not-allowed disabled:opacity-60`}
@@ -607,7 +607,7 @@ export default function SermonsPage() {
                         <button
                           type="button"
                           onClick={() => toggleReadContent(sermon.id)}
-                          className={`rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isRead
+                          className={`rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:px-4 max-lg:text-sm ${isRead
                             ? "bg-green-100 text-green-800 hover:bg-green-200"
                             : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                             }`}
@@ -635,7 +635,7 @@ export default function SermonsPage() {
 
             <Link
               href="/sermons/shares"
-              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+              className="mt-5 inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
             >
               查看全部分享
             </Link>
@@ -646,7 +646,7 @@ export default function SermonsPage() {
               <button
                 type="button"
                 onClick={() => setSidePanel("my-shares")}
-                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:text-sm ${sidePanel === "my-shares"
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:text-sm ${sidePanel === "my-shares"
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500"
                   }`}
@@ -657,7 +657,7 @@ export default function SermonsPage() {
               <button
                 type="button"
                 onClick={() => setSidePanel("favorites")}
-                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-md:min-h-11 max-md:text-sm ${sidePanel === "favorites"
+                className={`flex-1 rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:text-sm ${sidePanel === "favorites"
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500"
                   }`}
@@ -708,7 +708,7 @@ export default function SermonsPage() {
                         <button
                           type="button"
                           onClick={() => toggleFavoriteShare(share.id)}
-                          className={`mt-3 rounded-full px-3 py-1.5 text-xs transition max-md:min-h-11 max-md:px-4 max-md:text-sm ${isFavorite
+                          className={`mt-3 rounded-full px-3 py-1.5 text-xs transition max-lg:min-h-11 max-lg:px-4 max-lg:text-sm ${isFavorite
                             ? "bg-amber-100 text-amber-800"
                             : "bg-white text-stone-600 hover:bg-stone-100"
                             }`}

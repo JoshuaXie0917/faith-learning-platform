@@ -101,7 +101,7 @@ export function AudioBlobUploadField({
                     type="button"
                     onClick={handleUploadFile}
                     disabled={isUploading}
-                    className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+                    className="mt-3 rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
                 >
                     {isUploading ? "正在上传..." : "上传文件"}
                 </button>

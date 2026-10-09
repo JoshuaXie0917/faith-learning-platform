@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 import { FilterDisclosure } from "@/components/FilterDisclosure";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { formatContentDate } from "@/lib/contentFormat";
 
 export const runtime = "nodejs";
@@ -196,7 +197,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
         action={
           <Link
             href="/admin/sermons/new"
-            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+            className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
           >
             + 新增内容
           </Link>
@@ -232,12 +233,12 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
               type="search"
               defaultValue={activeKeyword}
               placeholder="搜索标题、讲员、系列、经文或正文"
-              className="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
+              className="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm outline-none transition focus:border-stone-600 max-md:text-base max-lg:min-h-11"
             />
           </div>
           <button
             type="submit"
-            className="rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
+            className="rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
           >
             搜索
           </button>
@@ -317,12 +318,15 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
                 actions={
                   <form action={deleteContent} className="w-full">
                     <input type="hidden" name="id" value={content.id} />
-                    <button
-                      type="submit"
-                      className="w-full rounded-lg bg-red-50 px-3 py-2.5 max-md:py-3 text-sm text-red-600 transition hover:bg-red-100"
-                    >
-                      删除
-                    </button>
+                    <ConfirmSubmitButton
+                      label="删除"
+                      title="删除内容"
+                      message="确定要删除这篇内容吗？删除后将不再公开显示。"
+                      detail={content.title}
+                      confirmLabel="确认删除"
+                      pendingLabel="正在删除..."
+                      className="w-full rounded-lg bg-red-50 px-3 py-2.5 max-lg:py-3 text-sm text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
                   </form>
                 }
               />

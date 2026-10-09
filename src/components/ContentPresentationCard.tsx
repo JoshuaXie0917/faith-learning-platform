@@ -75,8 +75,8 @@ function CardDetails({
   );
   const detailSpacing = roomy ? "mt-4" : "mt-3";
   const titleClassName = roomy
-    ? "mt-4 block text-xl font-semibold leading-8 text-stone-950 transition hover:text-amber-800 sm:text-[1.35rem]"
-    : "mt-3 block text-lg font-semibold leading-7 text-stone-950 transition hover:text-amber-800 sm:text-xl";
+    ? "mt-4 block text-xl font-semibold leading-8 text-stone-950 transition hover:text-amber-800 max-lg:mt-2.5 max-lg:py-1.5 sm:text-[1.35rem]"
+    : "mt-3 block text-lg font-semibold leading-7 text-stone-950 transition hover:text-amber-800 max-lg:mt-1 max-lg:py-2 sm:text-xl";
   const headingClassName = roomy
     ? "mt-4 text-xl font-semibold leading-8 text-stone-950 sm:text-[1.35rem]"
     : "mt-3 text-lg font-semibold leading-7 text-stone-950 sm:text-xl";
@@ -230,9 +230,9 @@ export function ContentPresentationCard({
   }
 
   const primaryActionClassName =
-    "inline-flex w-full items-center justify-center rounded-lg bg-stone-900 px-3 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700";
+    "inline-flex w-full items-center justify-center rounded-lg bg-stone-900 px-3 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700";
   const secondaryActionClassName =
-    "inline-flex w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-3 py-2.5 max-md:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950";
+    "inline-flex w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-3 py-2.5 max-lg:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950";
   const editAction = (
     <Link
       href={`/admin/sermons/${content.id}/edit`}

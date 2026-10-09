@@ -162,7 +162,7 @@ export default function DashboardPage() {
 
             <Link
               href="/sermons"
-              className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900 max-md:min-h-11 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900 max-lg:min-h-11 sm:w-auto"
             >
               查看全部
             </Link>

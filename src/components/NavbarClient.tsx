@@ -92,7 +92,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
         <Link
           href="/"
           onClick={() => setIsMenuOpen(false)}
-          className="flex items-center gap-2 font-semibold text-stone-900 max-md:min-h-11"
+          className="flex items-center gap-2 font-semibold text-stone-900 max-lg:min-h-11"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200 text-sm font-bold text-stone-900">
             花
@@ -105,7 +105,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-full px-4 py-2 text-sm transition ${isActive(link.href)
+              className={`rounded-full px-4 py-2 text-sm transition max-lg:py-3 ${isActive(link.href)
                 ? "bg-stone-900 text-white"
                 : "text-stone-600 hover:bg-white hover:text-stone-900"
                 }`}
@@ -147,7 +147,7 @@ export function NavbarClient({ isAdmin: isAdminFromServer }: NavbarClientProps) 
           ) : (
             <Link
               href="/login"
-              className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
+              className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-900 max-lg:py-3"
             >
               管理员登录
             </Link>

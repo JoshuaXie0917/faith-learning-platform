@@ -109,7 +109,7 @@ export default async function SermonDetailPage({ params }: Props) {
     <div className="mx-auto w-full max-w-5xl pb-10">
       <Link
         href="/sermons"
-        className="mb-3 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800 max-md:min-h-11 sm:mb-6"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800 max-lg:min-h-11 sm:mb-6"
       >
         ← 返回真理集录
       </Link>
@@ -227,7 +227,7 @@ export default async function SermonDetailPage({ params }: Props) {
               href={resourceUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-md:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
+              className="inline-flex w-full justify-center rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
             >
               {hasAudioResource ? "在新页面打开音频" : getResourceLabel(content.contentType)}
             </a>

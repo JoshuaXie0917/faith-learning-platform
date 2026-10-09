@@ -73,13 +73,13 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#faf5ef] text-stone-800">
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-6 sm:px-6">
-        <Link href="/" className="inline-flex items-center text-xl font-semibold tracking-wide max-md:min-h-11">
+        <Link href="/" className="inline-flex items-center text-xl font-semibold tracking-wide max-lg:min-h-11">
           四月花
         </Link>
 
         <Link
           href="/dashboard"
-          className="inline-flex items-center text-sm text-stone-600 transition hover:text-stone-900 max-md:min-h-11"
+          className="inline-flex items-center text-sm text-stone-600 transition hover:text-stone-900 max-lg:min-h-11"
         >
           返回学习中心
         </Link>
