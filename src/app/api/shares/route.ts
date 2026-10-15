@@ -1,20 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { handleShareCreate } from "@/lib/shareCreate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SHARE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_SHARE_LENGTH = 800;
-const MAX_NAME_LENGTH = 50;
-const MAX_TITLE_LENGTH = 100;
-
 function normalizeVisitorKey(value: string) {
   return value.trim().slice(0, 120);
-}
-
-function countTextWithoutPunctuation(text: string) {
-  return Array.from(text).filter((char) => /[\p{L}\p{N}]/u.test(char)).length;
 }
 
 function formatDate(date: Date) {
@@ -108,80 +100,8 @@ export async function GET(request: Request) {
   }
 }
 
+// Body limit, field rules, repeated-submission handling and throttling live in
+// src/lib/shareCreate.ts (tested against a disposable database).
 export async function POST(request: Request) {
-  try {
-    const body = (await request.json()) as {
-      visitorKey?: string;
-      name?: string;
-      title?: string;
-      content?: string;
-    };
-
-    const visitorKey = normalizeVisitorKey(String(body.visitorKey ?? ""));
-    const name = String(body.name ?? "").trim();
-    const title = String(body.title ?? "").trim();
-    const content = String(body.content ?? "").trim();
-
-    if (!visitorKey) {
-      return Response.json(
-        { error: "缺少浏览器标识，无法发布分享。" },
-        { status: 400 }
-      );
-    }
-
-    if (!name) {
-      return Response.json({ error: "请填写姓名。" }, { status: 400 });
-    }
-
-    if (!title) {
-      return Response.json({ error: "请填写分享主题。" }, { status: 400 });
-    }
-
-    if (Array.from(name).length > MAX_NAME_LENGTH) {
-      return Response.json({ error: "姓名最多 50 个字。" }, { status: 400 });
-    }
-
-    if (Array.from(title).length > MAX_TITLE_LENGTH) {
-      return Response.json({ error: "分享主题最多 100 个字。" }, { status: 400 });
-    }
-
-    if (!content) {
-      return Response.json({ error: "请填写分享内容。" }, { status: 400 });
-    }
-
-    if (countTextWithoutPunctuation(content) > MAX_SHARE_LENGTH) {
-      return Response.json(
-        { error: "分享内容最多 800 字，不包括标点符号和空格。" },
-        { status: 400 }
-      );
-    }
-
-    const now = new Date();
-
-    const share = await prisma.share.create({
-      data: {
-        name,
-        title,
-        content,
-        ownerKey: visitorKey,
-        createdAt: now,
-        expiresAt: new Date(now.getTime() + SHARE_LIFETIME_MS),
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    return Response.json({
-      ok: true,
-      shareId: share.id,
-    });
-  } catch (error) {
-    console.error("发布分享失败：", error);
-
-    return Response.json(
-      { error: "发布分享失败，请稍后再试。" },
-      { status: 500 }
-    );
-  }
+  return handleShareCreate(request, { prisma });
 }

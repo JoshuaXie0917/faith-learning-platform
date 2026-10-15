@@ -22,6 +22,13 @@ Short operational notes for the admin login, sessions, Blob uploads and the anon
 
 - Deploy order: apply the migration before deploying code that contains the throttle, otherwise every login returns 500.
 
+## Public Share submissions
+
+- `POST /api/shares` (`src/lib/shareCreate.ts`) reads at most 64 KB of request body for all fields together; a larger body is refused with HTTP 413 before it is parsed, and malformed JSON with 400. The delete and favorite routes accept at most 2 KB.
+- Field rules (`src/lib/shareValidation.ts`, also used by the form's counter): name up to 50, title up to 100 and content up to 800 user-perceived characters. Punctuation, spaces, line breaks and emoji count; an emoji sequence or a letter with combining marks counts as one. Content must contain at least one letter, number or emoji, and control characters are refused.
+- The same browser submitting the same title and text again within 10 minutes gets the first Share back (no duplicate).
+- Throttle: 6 new Shares per client address per hour, then HTTP 429 with `Retry-After` for an hour. Stored in the `LoginThrottle` table as an HMAC of `share-create:<address>` (separate from login rows; no raw addresses). Login and Share rows look alike, so the `DELETE FROM "LoginThrottle";` statement above resets both; otherwise a block ends by itself after an hour.
+
 ## Vercel Blob uploads
 
 - `POST /api/blob/upload` issues upload tokens only with an admin session. Vercel's upload-completed callback has no cookie; it is accepted only with a valid `x-vercel-signature` (HMAC with `BLOB_READ_WRITE_TOKEN`, verified by `@vercel/blob`). Logs contain the Blob pathname, never the full URL.

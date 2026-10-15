@@ -1,26 +1,36 @@
 import { createHmac, randomBytes } from "node:crypto";
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
-// Admin login throttling, shared across serverless instances through the
-// LoginThrottle table. Relative imports only, so it can be tested on its own.
+// Request throttling (admin login and Share creation), shared across serverless
+// instances through the LoginThrottle table. Relative imports only, so it can be
+// tested on its own.
 //
-// - Each login attempt from a client counts before the password is checked, so
-//   parallel requests cannot get more than LOGIN_MAX_ATTEMPTS password checks.
-// - The attempt after LOGIN_MAX_ATTEMPTS within LOGIN_WINDOW_MS starts a block of
-//   LOGIN_BLOCK_MS; blocked requests are refused without checking the password.
-// - A successful login deletes the client's row.
-// - Rows store an HMAC of the client address, never the address itself. The HMAC key
-//   is CRON_SECRET (random, high entropy) and deliberately not ADMIN_PASSWORD: a key
-//   derived from the password would let anyone who can read the table test password
-//   guesses offline against a row made from their own address.
+// - Each attempt from a client counts in one statement, so parallel requests cannot
+//   get more than the policy's maxAttempts through.
+// - The attempt after maxAttempts within windowMs starts a block of blockMs; blocked
+//   requests are refused without further work.
+// - Admin login: 5 attempts per 15 minutes, counted before the password is checked;
+//   a successful login deletes the client's row.
+// - Share creation: 6 new Shares per hour (counted only for valid, non-duplicate
+//   submissions).
+// - Rows store an HMAC of "<scope>:<client address>", never the address itself, so
+//   login and Share rows never collide. The HMAC key is CRON_SECRET (random, high
+//   entropy) and deliberately not ADMIN_PASSWORD: a key derived from the password
+//   would let anyone who can read the table test password guesses offline against a
+//   row made from their own address.
 
 export const LOGIN_MAX_ATTEMPTS = 5;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+
+export type ThrottlePolicy = { maxAttempts: number; windowMs: number; blockMs: number };
+export const LOGIN_POLICY: ThrottlePolicy = { maxAttempts: LOGIN_MAX_ATTEMPTS, windowMs: LOGIN_WINDOW_MS, blockMs: LOGIN_BLOCK_MS };
+export const SHARE_CREATE_POLICY: ThrottlePolicy = { maxAttempts: 6, windowMs: 60 * 60 * 1000, blockMs: 60 * 60 * 1000 };
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const PRUNE_BATCH = 100;
 
-type ThrottleClient = Pick<PrismaClient, "$queryRaw" | "$executeRaw">;
+// PrismaClient or an interactive-transaction client.
+type ThrottleClient = Pick<Prisma.TransactionClient, "$queryRaw" | "$executeRaw">;
 
 function utc(date: Date) {
   return Prisma.sql`(${date.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
@@ -71,8 +81,8 @@ export function getThrottleSecret(cronSecret: string | undefined = process.env.C
   return cronSecret || PROCESS_KEY;
 }
 
-export function hashClientAddress(address: string, secret: string): string {
-  return createHmac("sha256", secret).update(`admin-login:${address}`).digest("hex");
+export function hashClientAddress(address: string, secret: string, scope = "admin-login"): string {
+  return createHmac("sha256", secret).update(`${scope}:${address}`).digest("hex");
 }
 
 export async function registerLoginAttempt(
@@ -80,8 +90,17 @@ export async function registerLoginAttempt(
   key: string,
   now: Date = new Date()
 ): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
-  const windowCutoff = new Date(now.getTime() - LOGIN_WINDOW_MS);
-  const blockUntil = new Date(now.getTime() + LOGIN_BLOCK_MS);
+  return registerThrottledAttempt(db, key, now, LOGIN_POLICY);
+}
+
+export async function registerThrottledAttempt(
+  db: ThrottleClient,
+  key: string,
+  now: Date,
+  policy: ThrottlePolicy
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  const windowCutoff = new Date(now.getTime() - policy.windowMs);
+  const blockUntil = new Date(now.getTime() + policy.blockMs);
 
   // One statement, so concurrent attempts from the same client are counted exactly.
   // In DO UPDATE, every t."column" refers to the row as it was before this attempt.
@@ -96,7 +115,7 @@ export async function registerLoginAttempt(
       END,
       "blockedUntil" = CASE
         WHEN t."blockedUntil" > ${utc(now)} THEN t."blockedUntil"
-        WHEN t."windowStart" > ${utc(windowCutoff)} AND t."attempts" + 1 > ${LOGIN_MAX_ATTEMPTS} THEN ${utc(blockUntil)}
+        WHEN t."windowStart" > ${utc(windowCutoff)} AND t."attempts" + 1 > ${policy.maxAttempts} THEN ${utc(blockUntil)}
         ELSE NULL
       END,
       "windowStart" = CASE

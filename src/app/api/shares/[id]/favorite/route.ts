@@ -4,6 +4,8 @@ import {
   MAX_TOTAL_FAVORITES,
   withFavoriteMutationLock,
 } from "@/lib/favoriteLimit";
+import { readJsonObject } from "@/lib/requestBody";
+import { SHARE_SMALL_BODY_MAX_BYTES } from "@/lib/shareValidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,11 +24,13 @@ export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as {
-      visitorKey?: string;
-    };
+    const body = await readJsonObject(request, SHARE_SMALL_BODY_MAX_BYTES);
 
-    const visitorKey = normalizeVisitorKey(String(body.visitorKey ?? ""));
+    if (!body.ok) {
+      return Response.json({ error: body.error }, { status: body.status });
+    }
+
+    const visitorKey = normalizeVisitorKey(String(body.value.visitorKey ?? ""));
 
     if (!visitorKey) {
       return Response.json(
@@ -128,11 +132,13 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as {
-      visitorKey?: string;
-    };
+    const body = await readJsonObject(request, SHARE_SMALL_BODY_MAX_BYTES);
 
-    const visitorKey = normalizeVisitorKey(String(body.visitorKey ?? ""));
+    if (!body.ok) {
+      return Response.json({ error: body.error }, { status: body.status });
+    }
+
+    const visitorKey = normalizeVisitorKey(String(body.value.visitorKey ?? ""));
 
     if (!visitorKey) {
       return Response.json(

@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
-
-const MAX_SHARE_LENGTH = 800;
-
-function countTextWithoutPunctuation(text: string) {
-    return Array.from(text).filter((char) => /[\p{L}\p{N}]/u.test(char)).length;
-}
+import {
+    countCharacters,
+    exceedsCharacters,
+    SHARE_CONTENT_LIMIT_MESSAGE,
+    SHARE_CONTENT_MAX,
+    SHARE_NAME_MAX,
+    SHARE_TITLE_MAX,
+} from "@/lib/shareValidation";
 
 function getOrCreateVisitorKey() {
     const savedKey = localStorage.getItem("readVisitorKey");
@@ -39,8 +41,10 @@ export default function SharePage() {
     const [message, setMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const contentCount = countTextWithoutPunctuation(content);
-    const isOverLimit = contentCount > MAX_SHARE_LENGTH;
+    // Same rule as the server: every user-perceived character counts, including
+    // punctuation, spaces, line breaks and emoji.
+    const contentCount = countCharacters(content.trim());
+    const isOverLimit = contentCount > SHARE_CONTENT_MAX;
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -56,8 +60,18 @@ export default function SharePage() {
             return;
         }
 
+        if (exceedsCharacters(trimmedName, SHARE_NAME_MAX)) {
+            setMessage(`姓名最多 ${SHARE_NAME_MAX} 个字。`);
+            return;
+        }
+
         if (!trimmedTitle) {
             setMessage("请填写分享主题。");
+            return;
+        }
+
+        if (exceedsCharacters(trimmedTitle, SHARE_TITLE_MAX)) {
+            setMessage(`分享主题最多 ${SHARE_TITLE_MAX} 个字。`);
             return;
         }
 
@@ -67,7 +81,7 @@ export default function SharePage() {
         }
 
         if (isOverLimit) {
-            setMessage("分享内容最多 800 字，不包括标点符号和空格。");
+            setMessage(SHARE_CONTENT_LIMIT_MESSAGE);
             return;
         }
 
@@ -181,7 +195,7 @@ export default function SharePage() {
                                 className={`text-xs ${isOverLimit ? "text-red-600" : "text-stone-400"
                                     }`}
                             >
-                                {contentCount}/{MAX_SHARE_LENGTH}
+                                {contentCount}/{SHARE_CONTENT_MAX}
                             </span>
                         </div>
 
@@ -200,7 +214,7 @@ export default function SharePage() {
                         />
 
                         <p className="mt-2 text-xs leading-6 text-stone-400">
-                            最多 800 字，不包括标点符号和空格。
+                            最多 800 字，标点、空格和表情都计入。
                         </p>
                     </div>
 
