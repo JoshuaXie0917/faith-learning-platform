@@ -1,9 +1,7 @@
 import { Prisma } from "@prisma/client";
-import {
-  countVisitorFavorites,
-  MAX_TOTAL_FAVORITES,
-  withFavoriteMutationLock,
-} from "@/lib/favoriteLimit";
+import { MAX_TOTAL_FAVORITES, withFavoriteMutationLock } from "@/lib/favoriteLimit";
+import { prisma } from "@/lib/prisma";
+import { addShareFavorite, normalizeShareId } from "@/lib/shareLifecycle";
 import { readJsonObject } from "@/lib/requestBody";
 import { SHARE_SMALL_BODY_MAX_BYTES } from "@/lib/shareValidation";
 
@@ -39,65 +37,16 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const result = await withFavoriteMutationLock(
-      visitorKey,
-      async (transaction) => {
-        // Hold the parent row until the favorite is committed. Cleanup takes
-        // FOR UPDATE, so either this insert wins or the Share is unavailable.
-        const shares = await transaction.$queryRaw<{ id: string }[]>`
-          SELECT "id" FROM "Share"
-          WHERE "id" = ${id} AND "deletedAt" IS NULL
-          FOR KEY SHARE
-        `;
+    const result = await addShareFavorite(prisma, normalizeShareId(id), visitorKey);
 
-        if (shares.length === 0) {
-          return { status: "not-found" as const };
-        }
-
-        const existingFavorite = await transaction.shareFavorite.findUnique({
-          where: {
-            shareId_visitorKey: {
-              shareId: id,
-              visitorKey,
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (existingFavorite) {
-          return { status: "saved" as const };
-        }
-
-        const totalFavoriteCount = await countVisitorFavorites(
-          transaction,
-          visitorKey
-        );
-
-        if (totalFavoriteCount >= MAX_TOTAL_FAVORITES) {
-          return { status: "limit" as const };
-        }
-
-        await transaction.shareFavorite.create({
-          data: {
-            shareId: id,
-            visitorKey,
-          },
-        });
-
-        return { status: "saved" as const };
-      }
-    );
-
-    if (result.status === "not-found") {
+    if (result === "not-found") {
       return Response.json(
         { error: "分享不存在或已被删除。" },
         { status: 404 }
       );
     }
 
-    if (result.status === "limit") {
+    if (result === "limit") {
       return Response.json(
         {
           error: "收藏数量已达到 30 个上限。",

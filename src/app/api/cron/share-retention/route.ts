@@ -8,11 +8,20 @@ export const dynamic = "force-dynamic";
 const BATCH_LIMIT = 100;
 const UTC_NOW = Prisma.sql`(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`;
 const EFFECTIVE_DEADLINE = Prisma.sql`GREATEST(s."expiresAt", s."createdAt" + INTERVAL '168 hours')`;
+// Eligible for hard deletion:
+// - a Share deleted by its owner or an admin (soft-deleted), favorites or not:
+//   explicit deletion is never held back by a favorite;
+// - an expired Share that nobody has favorited.
 const ELIGIBLE_SHARE = Prisma.sql`
-  s."expiresAt" <= ${UTC_NOW}
-  AND s."createdAt" + INTERVAL '168 hours' <= ${UTC_NOW}
-  AND NOT EXISTS (
-    SELECT 1 FROM "ShareFavorite" AS f WHERE f."shareId" = s."id"
+  (
+    s."deletedAt" IS NOT NULL
+    OR (
+      s."expiresAt" <= ${UTC_NOW}
+      AND s."createdAt" + INTERVAL '168 hours' <= ${UTC_NOW}
+      AND NOT EXISTS (
+        SELECT 1 FROM "ShareFavorite" AS f WHERE f."shareId" = s."id"
+      )
+    )
   )
 `;
 
@@ -64,7 +73,8 @@ export async function GET(request: Request) {
           }[]>`
             SELECT s."id", s."expiresAt", s."deletedAt",
                    ${EFFECTIVE_DEADLINE} AS "effectiveExpiresAt",
-                   0::integer AS "favoriteCount"
+                   (SELECT COUNT(*)::integer FROM "ShareFavorite" AS f
+                    WHERE f."shareId" = s."id") AS "favoriteCount"
             FROM "Share" AS s
             WHERE ${ELIGIBLE_SHARE}
             ORDER BY s."expiresAt", s."id"

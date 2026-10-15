@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { readJsonObject } from "@/lib/requestBody";
 import { SHARE_SMALL_BODY_MAX_BYTES } from "@/lib/shareValidation";
+import { deleteShare, normalizeShareId } from "@/lib/shareLifecycle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,45 +121,29 @@ export async function DELETE(request: Request, context: RouteContext) {
       );
     }
 
-    const share = await prisma.share.findFirst({
-      where: {
-        id,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        ownerKey: true,
-      },
-    });
+    // Owner check, soft delete and removal of every favorite happen in one locked
+    // transaction: the Share disappears at once and no favorite keeps it stored.
+    const result = await deleteShare(prisma, normalizeShareId(id), { ownerKey: visitorKey });
 
-    if (!share) {
+    if (result === "not-found") {
       return Response.json(
         { error: "分享不存在或已经被删除。" },
         { status: 404 }
       );
     }
 
-    if (share.ownerKey !== visitorKey) {
+    if (result === "forbidden") {
       return Response.json(
         { error: "你只能删除自己发布的分享。" },
         { status: 403 }
       );
     }
 
-    await prisma.share.update({
-      where: {
-        id,
-      },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
-
     return Response.json({
       ok: true,
     });
   } catch (error) {
-    console.error("删除分享失败：", error);
+    console.error("删除分享失败：", error instanceof Error ? error.name : "unknown error");
 
     return Response.json(
       { error: "删除分享失败，请稍后再试。" },

@@ -7,6 +7,7 @@ const adminNav = [
   { href: "/admin", label: "后台总览", icon: "●" },
   { href: "/admin/sermons", label: "内容管理", icon: "◎" },
   { href: "/admin/taxonomy", label: "系列管理", icon: "◇" },
+  { href: "/admin/shares", label: "分享管理", icon: "◆" },
 ];
 
 export function AdminSidebar() {
@@ -23,7 +24,7 @@ export function AdminSidebar() {
       {/* Below lg the sidebar becomes a row of tabs above the page. */}
       <nav
         aria-label="管理后台"
-        className="grid grid-cols-3 gap-1 rounded-2xl border border-stone-200 bg-white p-1 shadow-sm lg:hidden"
+        className="grid grid-cols-4 gap-1 rounded-2xl border border-stone-200 bg-white p-1 shadow-sm lg:hidden"
       >
         {adminNav.map((item) => {
           const active = isActive(item.href);

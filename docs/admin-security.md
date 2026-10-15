@@ -37,3 +37,10 @@ Short operational notes for the admin login, sessions, Blob uploads and the anon
 ## Anonymous visitor key
 
 - The key lives in the browser's local storage. `VisitorKeySync` (root layout) copies it into the `readVisitorKey` cookie on every entry path. If the cookie had to be created on a server-rendered `/sermons/...` page, the page reloads once so the server can show overdue Content the visitor favorited.
+
+## Share moderation
+
+- `/admin/shares` lists stored Shares (newest 100 that are not deleted), including expired Shares that are still kept because a visitor favorited them.
+- Removal is a Server Action (`removeShare`) whose first statement is `await requireAdmin()`, before any input is read or any data is touched; the page and the admin layout also call `requireAdmin()`. The button uses the shared `ConfirmSubmitButton` dialog, so nothing is sent until "确认删除" is pressed.
+- Removal uses the same code as the owner's delete (`deleteShare` in `src/lib/shareLifecycle.ts`): the Share is soft-deleted and its favorites removed in one locked transaction, so it is unavailable immediately; Share retention deletes the row on its next run.
+- There is no undo in the interface. Before the next cleanup run a removed Share can still be restored in the database by clearing `deletedAt` (its favorites are gone).
