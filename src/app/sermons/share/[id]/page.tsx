@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
+import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
 
 type ShareDetail = {
     id: string;
@@ -59,9 +60,9 @@ export default function ShareDetailPage() {
             try {
                 const visitorKey = getOrCreateVisitorKey();
 
-                const response = await fetch(
-                    `/api/shares/${shareId}?visitorKey=${visitorKey}`
-                );
+                const response = await fetch(`/api/shares/${shareId}`, {
+                    headers: visitorKeyHeaders(visitorKey),
+                });
 
                 const data = (await response.json()) as {
                     share?: ShareDetail;

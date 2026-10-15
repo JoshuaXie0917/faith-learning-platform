@@ -74,9 +74,6 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "unknown error";
     console.error("Series image presign failed:", message.replace(/https?:\/\/\S+/gi, "[url]").slice(0, 300));
 
-    return jsonError(
-      error instanceof Error ? error.message : "图片上传授权失败，请稍后再试。",
-      500
-    );
+    return jsonError("图片上传授权失败，请稍后再试。", 500);
   }
 }

@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { publicContentWhere } from "@/lib/contentRetention";
+import { requestVisitorKey } from "@/lib/visitorKeyHeader";
 import {
   countVisitorFavorites,
   MAX_TOTAL_FAVORITES,
@@ -69,8 +70,7 @@ function missingVisitorKeyResponse() {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const visitorKey = normalizeVisitorKey(searchParams.get("visitorKey") ?? "");
+    const visitorKey = normalizeVisitorKey(requestVisitorKey(request));
 
     if (!visitorKey) return missingVisitorKeyResponse();
 

@@ -3,8 +3,12 @@
 import { upload } from "@vercel/blob/client";
 import type { PutBlobResult } from "@vercel/blob";
 import { useRef, useState } from "react";
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
+import {
+    isAllowedUploadType,
+    MAX_UPLOAD_BYTES,
+    UPLOAD_ACCEPT,
+    UPLOAD_TYPES_LABEL,
+} from "@/lib/uploadPolicy";
 
 type AudioBlobUploadFieldProps = {
     inputClass: string;
@@ -46,7 +50,12 @@ export function AudioBlobUploadField({
             return;
         }
 
-        if (file.size > MAX_FILE_SIZE) {
+        if (!isAllowedUploadType(file.type)) {
+            setError(`只支持上传${UPLOAD_TYPES_LABEL}。`);
+            return;
+        }
+
+        if (file.size > MAX_UPLOAD_BYTES) {
             setError(
                 `文件不能超过 100MB。当前文件大小是 ${formatSize(file.size)}。请压缩或拆分后再上传。`
             );
@@ -64,6 +73,7 @@ export function AudioBlobUploadField({
             const blob: PutBlobResult = await upload(pathname, uploadBody, {
                 access: "public",
                 handleUploadUrl: "/api/blob/upload",
+                contentType: file.type,
             });
 
             setResourceUrl(blob.url);
@@ -91,10 +101,10 @@ export function AudioBlobUploadField({
                     上传文件
                 </label>
 
-                <input id="content-file" ref={fileInputRef} type="file" className={inputClass} />
+                <input id="content-file" ref={fileInputRef} type="file" accept={UPLOAD_ACCEPT} className={inputClass} />
 
                 <p className="mt-2 text-xs leading-6 text-stone-400">
-                    可以上传音频、图片、PDF、Word、PPT 或其他学习资料。单个文件最大 100MB。
+                    可以上传{UPLOAD_TYPES_LABEL}。单个文件最大 100MB。
                 </p>
 
                 <button

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readJsonObject } from "@/lib/requestBody";
 import { SHARE_SMALL_BODY_MAX_BYTES } from "@/lib/shareValidation";
 import { deleteShare, normalizeShareId } from "@/lib/shareLifecycle";
+import { requestVisitorKey } from "@/lib/visitorKeyHeader";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,9 +28,7 @@ function formatDate(date: Date) {
 
 export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const { searchParams } = new URL(request.url);
-
-  const visitorKey = normalizeVisitorKey(searchParams.get("visitorKey") ?? "");
+  const visitorKey = normalizeVisitorKey(requestVisitorKey(request));
   const now = new Date();
 
   const visibilityConditions: Prisma.ShareWhereInput[] = [

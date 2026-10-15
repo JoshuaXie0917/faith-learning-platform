@@ -8,6 +8,7 @@ import {
   loadAndMigrateContentFavorites,
   readLegacyContentFavoriteIds,
 } from "@/lib/contentFavoritesClient";
+import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
 
 type DisplayShare = {
   id: string;
@@ -72,7 +73,7 @@ export default function SharesPage() {
 
     async function loadShares() {
       try {
-        const response = await fetch(`/api/shares?visitorKey=${visitorKey}`);
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
         const data = (await response.json()) as {
           shares?: DisplayShare[];
           error?: string;

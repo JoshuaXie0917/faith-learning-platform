@@ -1,12 +1,18 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { verifyAdminSessionCookie } from "@/lib/adminSession";
+import { ALLOWED_UPLOAD_CONTENT_TYPES, MAX_UPLOAD_BYTES } from "@/lib/uploadPolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const UPLOAD_COMPLETED = "blob.upload-completed";
+const TOKEN_VALID_FOR_MS = 15 * 60 * 1000;
+
+// The admin form names files resources/<random UUID><extension>.
+const UPLOAD_PATHNAME = /^resources\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[A-Za-z0-9]{1,10})?$/;
+
+class UploadRequestError extends Error {}
 
 function unauthorized() {
   return NextResponse.json({ error: "未授权。" }, { status: 401 });
@@ -44,8 +50,14 @@ export async function POST(request: Request) {
       request,
 
       onBeforeGenerateToken: async (pathname) => {
+        if (!UPLOAD_PATHNAME.test(pathname)) {
+          throw new UploadRequestError("invalid pathname");
+        }
+
         return {
-          maximumSizeInBytes: MAX_FILE_SIZE,
+          allowedContentTypes: ALLOWED_UPLOAD_CONTENT_TYPES,
+          maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          validUntil: Date.now() + TOKEN_VALID_FOR_MS,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             type: "resource-upload",
@@ -70,11 +82,16 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
+    if (error instanceof UploadRequestError) {
+      return NextResponse.json({ error: "上传请求无效，请重新选择文件。" }, { status: 400 });
+    }
+
+    // Details go to the server log only (URLs removed); the browser gets a fixed message.
     const message = error instanceof Error ? error.message : "";
     console.error("Blob upload route failed:", message.replace(/https?:\/\/\S+/gi, "[url]").slice(0, 300));
 
     return NextResponse.json(
-      { error: message || "文件上传失败，请稍后再试。" },
+      { error: "文件上传授权失败，请稍后再试。" },
       { status: 400 }
     );
   }

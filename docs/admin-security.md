@@ -44,3 +44,18 @@ Short operational notes for the admin login, sessions, Blob uploads and the anon
 - Removal is a Server Action (`removeShare`) whose first statement is `await requireAdmin()`, before any input is read or any data is touched; the page and the admin layout also call `requireAdmin()`. The button uses the shared `ConfirmSubmitButton` dialog, so nothing is sent until "确认删除" is pressed.
 - Removal uses the same code as the owner's delete (`deleteShare` in `src/lib/shareLifecycle.ts`): the Share is soft-deleted and its favorites removed in one locked transaction, so it is unavailable immediately; Share retention deletes the row on its next run.
 - There is no undo in the interface. Before the next cleanup run a removed Share can still be restored in the database by clearing `deletedAt` (its favorites are gone).
+
+## Request hardening (Release 3, security part)
+
+- **Security headers** (`next.config.mjs`, every response): `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` (the only CSP directive; scripts are not restricted because Next.js inline scripts would need nonces), a `Permissions-Policy` that turns off camera, microphone, location, payment and USB, and no `X-Powered-By`.
+- **Admin sessions** accept a token only until its signed expiry, and only if that expiry is at most `ADMIN_SESSION_MAX_AGE_SECONDS` (8 hours) plus one minute ahead. A validly signed token with a later expiry was not issued by this server and is refused.
+- **Admin login** reads at most 4 KB of JSON. A malformed body is a 400, an oversized one a 413, and the request body is never written to the logs (errors are logged by name only).
+- **Uploads** (`/api/blob/upload`, admin only): the client token is issued only for `resources/<UUID><extension>` paths, is valid for 15 minutes, and carries the content-type allowlist from `src/lib/uploadPolicy.ts` (audio, JPG/PNG/WebP/GIF images, PDF, Word, PowerPoint, plain text) and the 100 MB limit; Vercel Blob enforces both. HTML, SVG, scripts and executables are refused. Upload and image-signing errors return a fixed message; details go to the server log without URLs.
+- **Anonymous read marks** (`POST /api/contents/[id]/read`) are limited to 120 per hour per client address (HMAC key `content-read:<address>` in `LoginThrottle`), counted only for visible Content, before any row is written; bodies are limited to 2 KB.
+- **Visitor keys** are sent in the `X-Visitor-Key` request header instead of the URL, so they no longer appear in request logs. The `visitorKey` query parameter is still read for pages opened before this change and can be removed later.
+- **Public Share list** (`GET /api/shares`) returns at most the newest 100 public Shares plus the visitor's own favorited Shares.
+
+## Vercel environments
+
+- Production: `ADMIN_PASSWORD`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET`, `DATABASE_URL`, `SHARE_RETENTION_DELETE_ENABLED` (plus `MEMBER_ACCESS_CODE`, which no code reads since the member login was removed and can be deleted).
+- Preview receives none of the secrets (the project has no Preview deployments). `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY` are public identifiers and stay available to all environments.

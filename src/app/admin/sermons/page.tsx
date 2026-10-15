@@ -16,11 +16,16 @@ export const dynamic = "force-dynamic";
 type Props = {
   searchParams: Promise<{
     q?: string | string[];
-    type?: string;
-    speaker?: string;
-    series?: string;
+    type?: string | string[];
+    speaker?: string | string[];
+    series?: string | string[];
   }>;
 };
+
+// A repeated query parameter (?type=a&type=b) arrives as an array; use the first.
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 const contentTypeLabels: Record<string, string> = {
   recording: "录音",
@@ -68,9 +73,9 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
   const params = await searchParams;
 
   const activeKeyword = typeof params.q === "string" ? params.q.trim() : "";
-  const activeType = params.type ?? "all";
-  const activeSpeakerId = params.speaker ?? "all";
-  const activeSeriesId = params.series ?? "all";
+  const activeType = firstParam(params.type) ?? "all";
+  const activeSpeakerId = firstParam(params.speaker) ?? "all";
+  const activeSeriesId = firstParam(params.series) ?? "all";
 
   const filterParams = new URLSearchParams({
     type: activeType,

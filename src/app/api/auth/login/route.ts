@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { readJsonObject } from "@/lib/requestBody";
 import { normalizeName } from "@/lib/auth";
 import {
   ADMIN_SESSION_COOKIE_NAME,
@@ -21,7 +22,15 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Bounded parse: a malformed or oversized body is a 400 and its text is never
+    // logged (it may contain the password).
+    const parsed = await readJsonObject(request, 4 * 1024);
+
+    if (!parsed.ok) {
+      return NextResponse.json({ error: "请求格式不正确。" }, { status: parsed.status });
+    }
+
+    const body = parsed.value;
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
@@ -120,7 +129,8 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("管理员登录失败：", error instanceof Error ? error.message : "unknown error");
+    // Error name only: messages can echo request data.
+    console.error("管理员登录失败：", error instanceof Error ? error.name : "unknown error");
 
     return NextResponse.json(
       { error: "管理员登录失败，请稍后再试。" },

@@ -13,6 +13,7 @@ import { Prisma } from "@prisma/client";
 //   a successful login deletes the client's row.
 // - Share creation: 6 new Shares per hour (counted only for valid, non-duplicate
 //   submissions).
+// - Content read marks: 120 per hour (counted only for existing, visible Content).
 // - Rows store an HMAC of "<scope>:<client address>", never the address itself, so
 //   login and Share rows never collide. The HMAC key is CRON_SECRET (random, high
 //   entropy) and deliberately not ADMIN_PASSWORD: a key derived from the password
@@ -26,6 +27,9 @@ export const LOGIN_BLOCK_MS = 15 * 60 * 1000;
 export type ThrottlePolicy = { maxAttempts: number; windowMs: number; blockMs: number };
 export const LOGIN_POLICY: ThrottlePolicy = { maxAttempts: LOGIN_MAX_ATTEMPTS, windowMs: LOGIN_WINDOW_MS, blockMs: LOGIN_BLOCK_MS };
 export const SHARE_CREATE_POLICY: ThrottlePolicy = { maxAttempts: 6, windowMs: 60 * 60 * 1000, blockMs: 60 * 60 * 1000 };
+// Anonymous "read" marks create a visitor row per new browser key; 120 per hour per
+// address is far above normal reading and bounds how fast rows can be created.
+export const CONTENT_READ_POLICY: ThrottlePolicy = { maxAttempts: 120, windowMs: 60 * 60 * 1000, blockMs: 15 * 60 * 1000 };
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const PRUNE_BATCH = 100;
 

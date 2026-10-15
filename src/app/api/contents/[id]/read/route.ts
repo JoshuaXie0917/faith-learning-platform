@@ -1,5 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { publicContentWhere } from "@/lib/contentRetention";
+import { readJsonObject } from "@/lib/requestBody";
+import {
+  CONTENT_READ_POLICY,
+  getClientAddress,
+  getThrottleSecret,
+  hashClientAddress,
+  pruneLoginThrottle,
+  registerThrottledAttempt,
+} from "@/lib/loginThrottle";
+
+const READ_BODY_MAX_BYTES = 2 * 1024;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,9 +29,13 @@ export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as {
-      visitorKey?: string;
-    };
+    const parsed = await readJsonObject(request, READ_BODY_MAX_BYTES);
+
+    if (!parsed.ok) {
+      return Response.json({ error: parsed.error }, { status: parsed.status });
+    }
+
+    const body = parsed.value as { visitorKey?: string };
 
     const visitorKey = normalizeVisitorKey(String(body.visitorKey ?? ""));
 
@@ -45,6 +60,19 @@ export async function POST(request: Request, context: RouteContext) {
       return Response.json(
         { error: "内容不存在，或当前不可标记已读。" },
         { status: 404 }
+      );
+    }
+
+    // Per-address limit before any row is written (key: HMAC of the address).
+    const now = new Date();
+    const throttleKey = hashClientAddress(getClientAddress(request.headers), getThrottleSecret(), "content-read");
+    await pruneLoginThrottle(prisma, now).catch(() => undefined);
+    const attempt = await registerThrottledAttempt(prisma, throttleKey, now, CONTENT_READ_POLICY);
+
+    if (!attempt.allowed) {
+      return Response.json(
+        { error: "操作太频繁，请稍后再试。" },
+        { status: 429, headers: { "Retry-After": String(attempt.retryAfterSeconds) } }
       );
     }
 
@@ -99,9 +127,13 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as {
-      visitorKey?: string;
-    };
+    const parsed = await readJsonObject(request, READ_BODY_MAX_BYTES);
+
+    if (!parsed.ok) {
+      return Response.json({ error: parsed.error }, { status: parsed.status });
+    }
+
+    const body = parsed.value as { visitorKey?: string };
 
     const visitorKey = normalizeVisitorKey(String(body.visitorKey ?? ""));
 

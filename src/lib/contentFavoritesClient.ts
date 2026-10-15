@@ -1,3 +1,5 @@
+import { visitorKeyHeaders } from "./visitorKeyHeader";
+
 const LEGACY_CONTENT_FAVORITES_KEY = "favoriteSermonIds";
 const CONTENT_FAVORITES_LOCK_NAME = "faith-content-favorites";
 
@@ -87,9 +89,7 @@ export async function loadAndMigrateContentFavorites(visitorKey: string) {
   return withBrowserFavoriteLock<ContentFavoritesLoadResult>(async () => {
     const legacyContentIds = readLegacyContentFavoriteIds();
     const response = await fetch(
-      legacyContentIds.length > 0
-        ? "/api/contents/favorites"
-        : `/api/contents/favorites?visitorKey=${encodeURIComponent(visitorKey)}`,
+      "/api/contents/favorites",
       legacyContentIds.length > 0
         ? {
             method: "POST",
@@ -101,7 +101,7 @@ export async function loadAndMigrateContentFavorites(visitorKey: string) {
               contentIds: legacyContentIds,
             }),
           }
-        : undefined
+        : { headers: visitorKeyHeaders(visitorKey) }
     );
     const result = await readResponse(response, true);
     const savedContentIds = new Set(result.savedContentIds);

@@ -13,6 +13,7 @@ import {
   readLegacyContentFavoriteIds,
   setContentFavorite,
 } from "@/lib/contentFavoritesClient";
+import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
 
 type PublicContent = {
   id: string;
@@ -222,7 +223,7 @@ export default function SermonsPage() {
       try {
         const visitorKey = getOrCreateVisitorKey();
 
-        const response = await fetch(`/api/shares?visitorKey=${visitorKey}`);
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
         const data = (await response.json()) as {
           shares?: DisplayShare[];
         };

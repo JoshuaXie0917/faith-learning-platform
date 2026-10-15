@@ -81,7 +81,16 @@ export function verifyAdminSessionToken(token: string | null) {
 
   const expiresAt = Number(payload);
 
-  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
+  const now = Math.floor(Date.now() / 1000);
+
+  // Tokens are issued for ADMIN_SESSION_MAX_AGE_SECONDS. A later expiry (allowing a
+  // minute of clock skew) was not issued by this server, so it is refused even if
+  // the signature is valid.
+  if (
+    !Number.isSafeInteger(expiresAt) ||
+    expiresAt <= now ||
+    expiresAt > now + ADMIN_SESSION_MAX_AGE_SECONDS + 60
+  ) {
     return false;
   }
 

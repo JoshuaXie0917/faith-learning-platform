@@ -11,6 +11,7 @@ import {
   readLegacyContentFavoriteIds,
 } from "@/lib/contentFavoritesClient";
 import { getOrCreateVisitorKey } from "@/lib/visitorKeyClient";
+import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
 
 type PublicContent = {
   id: string;
@@ -99,7 +100,7 @@ export default function DashboardPage() {
       try {
         const visitorKey = getOrCreateVisitorKey();
 
-        const response = await fetch(`/api/shares?visitorKey=${visitorKey}`);
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
         const data = (await response.json()) as {
           shares?: DatabaseShare[];
         };
