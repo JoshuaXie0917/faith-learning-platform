@@ -1,6 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+// Contact and social details are not shown until real ones are available.
+const footerLinks = [
+  { href: "/dashboard", label: "学习中心" },
+  { href: "/sermons", label: "真理集录" },
+  { href: "/sermons/series", label: "系列" },
+  { href: "/about", label: "信仰立场" },
+];
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -31,32 +40,28 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-            Contact
+        <nav aria-label="页脚导航" className="md:col-span-2">
+          <h3 className="text-sm font-semibold tracking-wider text-white">
+            浏览
           </h3>
 
-          <div className="mt-4 space-y-2 text-sm text-stone-400">
-            <p>邮箱：待补充</p>
-            <p>联系方式：待补充</p>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-            Social
-          </h3>
-
-          <div className="mt-4 space-y-2 text-sm text-stone-400">
-            <p>微信：待补充</p>
-            <p>公众号：待补充</p>
-            <p>YouTube：待补充</p>
-          </div>
-        </div>
+          <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
+            {footerLinks.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="inline-flex min-h-11 items-center text-stone-300 underline-offset-4 transition hover:text-white hover:underline"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
 
       <div className="border-t border-stone-800">
-        <div className="mx-auto max-w-6xl px-6 py-5 text-center text-xs text-stone-500">
+        <div className="mx-auto max-w-6xl px-6 py-5 text-center text-xs text-stone-400">
           © 2026 四月花
         </div>
       </div>

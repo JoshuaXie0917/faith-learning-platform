@@ -154,7 +154,7 @@ function SummaryPanel({
   return (
     <aside className={`min-w-0 rounded-lg border border-stone-200 bg-stone-50 ${roomy ? "p-5" : "p-4"}`}>
       <p className="text-xs font-medium text-stone-500">摘要</p>
-      <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${description?.trim() ? "text-stone-600" : "text-stone-400"}`}>
+      <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${description?.trim() ? "text-stone-600" : "text-stone-500"}`}>
         {description?.trim() || "暂无摘要"}
       </p>
     </aside>

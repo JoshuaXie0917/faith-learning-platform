@@ -115,8 +115,13 @@ export default function LoginPage() {
                   setError("");
                 }}
                 placeholder="请输入管理员姓名"
+                aria-describedby="adminName-help"
+                autoComplete="name"
                 className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
               />
+              <p id="adminName-help" className="mt-2 text-xs leading-6 text-stone-500">
+                姓名用于记录本次登录的管理员；登录只核对管理员密码。
+              </p>
             </div>
 
             <div>
@@ -136,12 +141,13 @@ export default function LoginPage() {
                   setError("");
                 }}
                 placeholder="请输入管理员密码"
+                autoComplete="current-password"
                 className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base"
               />
             </div>
 
             {error && (
-              <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </p>
             )}

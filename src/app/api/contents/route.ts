@@ -6,11 +6,22 @@ import {
   getContentTypeLabel,
   parseJsonTextArray,
 } from "@/lib/contentFormat";
+import { searchKeywords } from "@/lib/contentForm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  try {
+    return Response.json({ contents: await loadPublicContents() });
+  } catch (error) {
+    // A database or network failure must not look like an empty library to members.
+    console.error("读取内容失败：", error instanceof Error ? error.name : "unknown error");
+    return Response.json({ error: "读取内容失败，请稍后再试。" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+  }
+}
+
+async function loadPublicContents() {
   const visitorKey = await getRequestVisitorKey();
   const contents = await prisma.content.findMany({
     where: publicContentWhere(new Date(), visitorKey),
@@ -36,13 +47,12 @@ export async function GET() {
       date: true,
       duration: true,
       tagsText: true,
-      searchKeywordsText: true,
       resourceUrl: true,
       viewCount: true,
     },
   });
 
-  const publicContents = contents.map((content) => ({
+  return contents.map((content) => ({
     id: content.id,
     title: content.title,
     description: content.description,
@@ -60,12 +70,10 @@ export async function GET() {
     rawDate: content.date,
     duration: content.duration,
     tags: parseJsonTextArray(content.tagsText),
-    searchKeywords: parseJsonTextArray(content.searchKeywordsText),
+    // From the current title, speaker and Series name, so a renamed Series is never
+    // found under its old name.
+    searchKeywords: searchKeywords(content.title, content.speaker, content.series),
     resourceUrl: content.resourceUrl,
     viewCount: content.viewCount,
   }));
-
-  return Response.json({
-    contents: publicContents,
-  });
 }

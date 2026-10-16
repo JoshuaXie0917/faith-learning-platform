@@ -47,6 +47,8 @@ export default function SharesPage() {
   const [favoriteSermonCount, setFavoriteSermonCount] = useState(0);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [sharesAttempt, setSharesAttempt] = useState(0);
   const [updatingShareId, setUpdatingShareId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,36 +73,47 @@ export default function SharesPage() {
       }
     }
 
-    async function loadShares() {
-      try {
-        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
-        const data = (await response.json()) as {
-          shares?: DisplayShare[];
-          error?: string;
-        };
-
-        if (!response.ok) {
-          setShares([]);
-          setMessage(data.error ?? "读取分享失败，请稍后再试。");
-          return;
-        }
-
-        setShares(data.shares ?? []);
-      } catch {
-        setShares([]);
-        setMessage("读取分享失败，请稍后再试。");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     loadFavoriteContents();
-    loadShares();
 
     return () => {
       isCancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const visitorKey = getOrCreateVisitorKey();
+
+    async function loadShares() {
+      setIsLoading(true);
+      setLoadError("");
+
+      try {
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey), cache: "no-store" });
+        const data = (await response.json().catch(() => null)) as {
+          shares?: DisplayShare[];
+          error?: string;
+        } | null;
+
+        if (!response.ok || !data || !Array.isArray(data.shares)) {
+          if (!isCancelled) setLoadError(data?.error ?? "读取分享失败，请稍后再试。");
+          return;
+        }
+
+        if (!isCancelled) setShares(data.shares);
+      } catch {
+        if (!isCancelled) setLoadError("读取分享失败，请检查网络后重新加载。");
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    }
+
+    loadShares();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [sharesAttempt]);
 
   const orderedShares = useMemo(
     () =>
@@ -179,7 +192,7 @@ export default function SharesPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="兄弟姊妹的分享"
+        title="弟兄姊妹的分享"
         subtitle="阅读大家的学习心得、提醒、问题与感动。未收藏的分享在 7 天后将被清理；收藏者可继续查看已收藏的分享。"
         action={
           <>
@@ -202,25 +215,37 @@ export default function SharesPage() {
       <section className="mx-auto max-w-4xl">
         <div className="mb-5 flex flex-col gap-3 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <p className="text-sm leading-7 text-stone-500">
-            共 {orderedShares.length} 条可见分享
+            共 {isLoading || loadError ? "—" : orderedShares.length} 条可见分享
           </p>
           <p className="text-sm text-stone-500">
             收藏总数：{totalFavoriteCount} / {MAX_TOTAL_FAVORITES}
           </p>
         </div>
 
-        {message && (
-          <p
-            role="status"
-            className="mb-5 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800"
-          >
-            {message}
-          </p>
-        )}
+        {/* Always present, so screen readers announce favorite results. */}
+        <p
+          role="status"
+          aria-live="polite"
+          className={message ? "mb-5 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800" : "sr-only"}
+        >
+          {message}
+        </p>
 
         {isLoading ? (
-          <div className="rounded-3xl border border-stone-200 bg-white p-6 text-sm text-stone-500 shadow-sm">
+          <div role="status" className="rounded-3xl border border-stone-200 bg-white p-6 text-sm text-stone-500 shadow-sm">
             正在加载分享……
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-sm sm:p-8">
+            <p className="text-lg font-semibold text-red-800">分享暂时无法读取</p>
+            <p className="mt-2 text-sm leading-7 text-red-700">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => setSharesAttempt((attempt) => attempt + 1)}
+              className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
+            >
+              重新加载
+            </button>
           </div>
         ) : orderedShares.length === 0 ? (
           <div className="rounded-3xl border border-amber-100 bg-amber-50 p-6 text-center shadow-sm sm:p-8">
@@ -238,7 +263,7 @@ export default function SharesPage() {
                 key={share.id}
                 className="min-w-0 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7"
               >
-                <div className="flex flex-wrap items-center gap-2 text-xs text-stone-400">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
                   <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">
                     分享
                   </span>
@@ -271,7 +296,7 @@ export default function SharesPage() {
                 </div>
 
                 <div className="mt-6 flex flex-col gap-4 border-t border-stone-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs leading-6 text-stone-400">
+                  <p className="text-xs leading-6 text-stone-500">
                     公开展示至：{share.expiresDate}
                   </p>
 
@@ -284,6 +309,7 @@ export default function SharesPage() {
                     </Link>
                     <button
                       type="button"
+                      aria-pressed={share.isFavorite}
                       onClick={() => toggleFavoriteShare(share.id)}
                       disabled={updatingShareId === share.id}
                       className={`w-full rounded-full px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 max-lg:min-h-11 sm:w-auto ${

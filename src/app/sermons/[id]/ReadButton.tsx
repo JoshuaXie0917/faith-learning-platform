@@ -102,6 +102,7 @@ export function ReadButton({ contentId }: ReadButtonProps) {
 
         <button
           type="button"
+          aria-pressed={isRead}
           disabled={isSubmitting}
           onClick={handleRead}
           className={`inline-flex w-full justify-center rounded-full px-5 py-2.5 max-lg:py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto ${
@@ -114,11 +115,14 @@ export function ReadButton({ contentId }: ReadButtonProps) {
         </button>
       </div>
 
-      {message && (
-        <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-          {message}
-        </p>
-      )}
+      {/* Always present, so screen readers announce the result. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={message ? "mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800" : "sr-only"}
+      >
+        {message}
+      </p>
     </div>
   );
 }

@@ -158,6 +158,10 @@ export default function SermonsPage() {
   const [officialContents, setOfficialContents] = useState<PublicContent[]>([]);
   const [sidePanel, setSidePanel] = useState<SidePanel>("my-shares");
   const [isLoading, setIsLoading] = useState(true);
+  const [contentsError, setContentsError] = useState("");
+  const [contentsAttempt, setContentsAttempt] = useState(0);
+  const [sharesError, setSharesError] = useState("");
+  const [sharesAttempt, setSharesAttempt] = useState(0);
   const [updatingFavoriteContentId, setUpdatingFavoriteContentId] = useState<string | null>(null);
   const [migratingFavoriteContentIds, setMigratingFavoriteContentIds] = useState<string[]>([]);
 
@@ -200,47 +204,69 @@ export default function SermonsPage() {
   }, []);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadContents() {
+      setIsLoading(true);
+      setContentsError("");
+
       try {
         // Sets the visitor cookie first, so overdue favorites are included.
         getOrCreateVisitorKey();
-        const response = await fetch("/api/contents");
-        const data = (await response.json()) as { contents?: PublicContent[] };
+        const response = await fetch("/api/contents", { cache: "no-store" });
+        const data = (await response.json().catch(() => null)) as { contents?: PublicContent[] } | null;
 
-        setOfficialContents(data.contents ?? []);
+        // A failed request is an error, never "no content".
+        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("contents unavailable");
+
+        if (!isCancelled) setOfficialContents(data.contents);
       } catch {
-        setOfficialContents([]);
+        if (!isCancelled) setContentsError("内容暂时无法读取，请检查网络后重新加载。");
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) setIsLoading(false);
       }
     }
 
     loadContents();
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [contentsAttempt]);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadShares() {
+      setSharesError("");
+
       try {
         const visitorKey = getOrCreateVisitorKey();
 
-        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
-        const data = (await response.json()) as {
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey), cache: "no-store" });
+        const data = (await response.json().catch(() => null)) as {
           shares?: DisplayShare[];
-        };
+        } | null;
 
-        const nextShares = (data.shares ?? []).map((share) => ({
+        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("shares unavailable");
+
+        const nextShares = data.shares.map((share) => ({
           ...share,
           href: `/sermons/share/${share.id}`,
         }));
 
-        setShares(nextShares);
+        if (!isCancelled) setShares(nextShares);
       } catch {
-        setShares([]);
+        if (!isCancelled) setSharesError("分享暂时无法读取，我的分享和收藏的分享可能显示不完整。");
       }
     }
 
     loadShares();
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [sharesAttempt]);
 
   useEffect(() => {
     if (!favoriteMessage) return;
@@ -528,9 +554,23 @@ export default function SermonsPage() {
             </div>
           </section>
 
+          <h2 className="sr-only">正式内容</h2>
+
           {isLoading ? (
-            <div className="rounded-3xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
+            <div role="status" className="rounded-3xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
               正在加载内容……
+            </div>
+          ) : contentsError ? (
+            <div role="alert" className="rounded-3xl border border-red-200 bg-red-50 p-5 text-center shadow-sm sm:p-8">
+              <p className="text-lg font-semibold text-red-800 sm:text-xl">内容暂时无法读取</p>
+              <p className="mt-3 text-sm leading-7 text-red-700">{contentsError}</p>
+              <button
+                type="button"
+                onClick={() => setContentsAttempt((attempt) => attempt + 1)}
+                className="mt-5 rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
+              >
+                重新加载
+              </button>
             </div>
           ) : filteredSermons.length === 0 ? (
             <div className="rounded-3xl border border-amber-100 bg-amber-50 p-5 text-center shadow-sm sm:p-8">
@@ -587,6 +627,7 @@ export default function SermonsPage() {
                       <div className="flex flex-wrap justify-end gap-2">
                         <button
                           type="button"
+                          aria-pressed={isFavorite}
                           onClick={() => toggleFavoriteSermon(sermon.id)}
                           disabled={
                             updatingFavoriteContentId === sermon.id ||
@@ -607,6 +648,7 @@ export default function SermonsPage() {
                         </button>
                         <button
                           type="button"
+                          aria-pressed={isRead}
                           onClick={() => toggleReadContent(sermon.id)}
                           className={`rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:px-4 max-lg:text-sm ${isRead
                             ? "bg-green-100 text-green-800 hover:bg-green-200"
@@ -627,7 +669,7 @@ export default function SermonsPage() {
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
-              兄弟姊妹的分享
+              弟兄姊妹的分享
             </h2>
 
             <p className="mt-2 text-sm leading-7 text-stone-500">
@@ -643,13 +685,15 @@ export default function SermonsPage() {
           </section>
 
           <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-4 flex rounded-full bg-stone-100 p-1">
+            <h2 className="sr-only">我的分享与收藏</h2>
+            <div role="group" aria-label="选择显示我的分享或我的收藏" className="mb-4 flex rounded-full bg-stone-100 p-1">
               <button
                 type="button"
+                aria-pressed={sidePanel === "my-shares"}
                 onClick={() => setSidePanel("my-shares")}
                 className={`flex-1 rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:text-sm ${sidePanel === "my-shares"
                   ? "bg-white text-stone-900 shadow-sm"
-                  : "text-stone-500"
+                  : "text-stone-600"
                   }`}
               >
                 我的分享
@@ -657,10 +701,11 @@ export default function SermonsPage() {
 
               <button
                 type="button"
+                aria-pressed={sidePanel === "favorites"}
                 onClick={() => setSidePanel("favorites")}
                 className={`flex-1 rounded-full px-3 py-2 text-xs transition max-lg:min-h-11 max-lg:text-sm ${sidePanel === "favorites"
                   ? "bg-white text-stone-900 shadow-sm"
-                  : "text-stone-500"
+                  : "text-stone-600"
                   }`}
               >
                 我的收藏
@@ -671,11 +716,23 @@ export default function SermonsPage() {
               收藏总数：{totalFavoriteCount} / {MAX_TOTAL_FAVORITES}
             </div>
 
-            {favoriteMessage && (
-              <div className="mb-4 rounded-2xl bg-amber-50 p-3 text-sm leading-6 text-amber-800">
-                {favoriteMessage}
+            {sharesError && (
+              <div role="alert" className="mb-4 rounded-2xl bg-red-50 p-3 text-sm leading-6 text-red-700">
+                <p>{sharesError}</p>
+                <button
+                  type="button"
+                  onClick={() => setSharesAttempt((attempt) => attempt + 1)}
+                  className="mt-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 max-lg:min-h-11 max-lg:px-4 max-lg:text-sm"
+                >
+                  重新加载分享
+                </button>
               </div>
             )}
+
+            {/* Always present, so screen readers announce favorite and read results. */}
+            <div role="status" aria-live="polite" className={favoriteMessage ? "mb-4 rounded-2xl bg-amber-50 p-3 text-sm leading-6 text-amber-800" : "sr-only"}>
+              {favoriteMessage}
+            </div>
 
             {sidePanel === "my-shares" ? (
               <div className="space-y-3">
@@ -701,13 +758,14 @@ export default function SermonsPage() {
                             {share.content}
                           </p>
 
-                          <p className="mt-3 text-xs text-stone-400">
+                          <p className="mt-3 text-xs text-stone-500">
                             {share.name} · {formatDate(share.createdAt)}
                           </p>
                         </Link>
 
                         <button
                           type="button"
+                          aria-pressed={isFavorite}
                           onClick={() => toggleFavoriteShare(share.id)}
                           className={`mt-3 rounded-full px-3 py-1.5 text-xs transition max-lg:min-h-11 max-lg:px-4 max-lg:text-sm ${isFavorite
                             ? "bg-amber-100 text-amber-800"
@@ -739,7 +797,7 @@ export default function SermonsPage() {
                           {sermon.title}
                         </p>
 
-                        <p className="mt-2 text-xs text-stone-400">
+                        <p className="mt-2 text-xs text-stone-500">
                           正式内容 · {sermon.date}
                         </p>
                       </Link>
@@ -755,7 +813,7 @@ export default function SermonsPage() {
                           {share.title}
                         </p>
 
-                        <p className="mt-2 text-xs text-stone-400">
+                        <p className="mt-2 text-xs text-stone-500">
                           分享 · {share.name}
                         </p>
                       </Link>

@@ -145,15 +145,18 @@ export default function ShareDetailPage() {
                     }
                 />
 
-                {message && (
-                    <div className="mx-auto max-w-3xl rounded-3xl border border-amber-100 bg-amber-50 p-6 text-sm leading-7 text-stone-600">
-                        {message}
-                    </div>
-                )}
+                {/* Loading, not-found and error messages; announced by screen readers. */}
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className={message ? "mx-auto max-w-3xl rounded-3xl border border-amber-100 bg-amber-50 p-6 text-sm leading-7 text-stone-600" : "sr-only"}
+                >
+                    {message}
+                </div>
 
                 {share && (
                     <article className="mx-auto max-w-3xl rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
-                        <div className="mb-5 flex flex-wrap items-center gap-2 text-xs text-stone-400">
+                        <div className="mb-5 flex flex-wrap items-center gap-2 text-xs text-stone-500">
                             <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">
                                 分享
                             </span>
@@ -175,9 +178,10 @@ export default function ShareDetailPage() {
                             )}
                         </div>
 
-                        <h1 className="break-words text-2xl font-semibold leading-9 text-stone-900 sm:text-3xl">
+                        {/* The page title (h1) is "学习分享"; one h1 per page. */}
+                        <h2 className="break-words text-2xl font-semibold leading-9 text-stone-900 sm:text-3xl">
                             {share.title}
-                        </h1>
+                        </h2>
 
                         <div className="mt-6 whitespace-pre-wrap break-words text-sm leading-8 text-stone-700 sm:text-base">
                             {share.content}
@@ -198,7 +202,7 @@ export default function ShareDetailPage() {
                                     {isDeleting ? "正在删除..." : "删除我的分享"}
                                 </button>
 
-                                <p className="mt-3 text-xs leading-6 text-stone-400">
+                                <p className="mt-3 text-xs leading-6 text-stone-500">
                                     只有发布这条分享的同一个浏览器身份可以删除它。
                                 </p>
                             </div>

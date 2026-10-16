@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 import { formatContentDate, getContentTypeLabel } from "@/lib/contentFormat";
+import { assignContentToSeriesRecord } from "@/lib/contentSave";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,35 +24,12 @@ async function assignContentToSeries(seriesId: string, formData: FormData) {
 
     const contentId = String(formData.get("contentId") ?? "").trim();
 
-    if (!seriesId || !contentId) {
-        return;
-    }
+    // Also refreshes the Content's search keywords for the new Series name.
+    await assignContentToSeriesRecord(prisma, seriesId, contentId);
 
-    const [series, content] = await Promise.all([
-        prisma.series.findUnique({
-            where: { id: seriesId },
-            select: { id: true, title: true, deletedAt: true },
-        }),
-        prisma.content.findUnique({
-            where: { id: contentId },
-            select: { id: true, deletedAt: true },
-        }),
-    ]);
-
-    if (!series || series.deletedAt || !content || content.deletedAt) {
-        return;
-    }
-
-    await prisma.content.update({
-        where: { id: content.id },
-        data: {
-            seriesId: series.id,
-            series: series.title,
-        },
-    });
-
-    revalidatePath(`/admin/taxonomy/${series.id}`);
+    revalidatePath(`/admin/taxonomy/${seriesId}`);
     revalidatePath("/admin/sermons");
+    revalidatePath("/sermons");
 }
 
 export default async function AdminSeriesPage({ params }: Props) {
@@ -184,12 +163,11 @@ export default async function AdminSeriesPage({ params }: Props) {
                                             )}
                                             <form action={assignContentToSeries.bind(null, series.id)} className="w-full">
                                                 <input type="hidden" name="contentId" value={sermon.id} />
-                                                <button
-                                                    type="submit"
-                                                    className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 max-lg:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-900"
-                                                >
-                                                    {sermon.seriesId ? "移到此系列" : "加入此系列"}
-                                                </button>
+                                                <PendingSubmitButton
+                                                    label={sermon.seriesId ? "移到此系列" : "加入此系列"}
+                                                    pendingLabel="处理中…"
+                                                    className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 max-lg:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                                />
                                             </form>
                                         </>
                                     }

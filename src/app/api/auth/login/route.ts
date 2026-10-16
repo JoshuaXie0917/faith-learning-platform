@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     if (!safeEqualStrings(password, adminPassword)) {
       return NextResponse.json(
-        { error: "管理员姓名或密码不正确。" },
+        { error: "管理员密码不正确。" },
         { status: 401 }
       );
     }

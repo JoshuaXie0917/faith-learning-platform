@@ -2,7 +2,7 @@
 
 import { upload } from "@vercel/blob/client";
 import type { PutBlobResult } from "@vercel/blob";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     isAllowedUploadType,
     MAX_UPLOAD_BYTES,
@@ -13,6 +13,8 @@ import {
 type AudioBlobUploadFieldProps = {
     inputClass: string;
     initialResourceUrl?: string;
+    // Lets the surrounding form disable saving while a file is still uploading.
+    onUploadingChange?: (isUploading: boolean) => void;
 };
 
 function formatSize(size: number) {
@@ -30,6 +32,7 @@ function getSafeExtension(fileName: string) {
 export function AudioBlobUploadField({
     inputClass,
     initialResourceUrl = "",
+    onUploadingChange,
 }: AudioBlobUploadFieldProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +41,10 @@ export function AudioBlobUploadField({
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    useEffect(() => {
+        onUploadingChange?.(isUploading);
+    }, [isUploading, onUploadingChange]);
 
     async function handleUploadFile() {
         const file = fileInputRef.current?.files?.[0];
@@ -101,9 +108,9 @@ export function AudioBlobUploadField({
                     上传文件
                 </label>
 
-                <input id="content-file" ref={fileInputRef} type="file" accept={UPLOAD_ACCEPT} className={inputClass} />
+                <input id="content-file" ref={fileInputRef} type="file" accept={UPLOAD_ACCEPT} aria-describedby="content-file-help" className={inputClass} />
 
-                <p className="mt-2 text-xs leading-6 text-stone-400">
+                <p id="content-file-help" className="mt-2 text-xs leading-6 text-stone-500">
                     可以上传{UPLOAD_TYPES_LABEL}。单个文件最大 100MB。
                 </p>
 
@@ -128,7 +135,7 @@ export function AudioBlobUploadField({
                             {resourceUrl}
                         </a>
 
-                        <p className="mt-2 text-xs leading-6 text-stone-400">
+                        <p className="mt-2 text-xs leading-6 text-stone-500">
                             如果不重新上传文件，保存时会继续保留当前文件。
                         </p>
                     </div>
@@ -141,14 +148,17 @@ export function AudioBlobUploadField({
                 </div>
             )}
 
-            {message && (
-                <p className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
-                    {message}
-                </p>
-            )}
+            {/* Always present, so screen readers announce upload results as they appear. */}
+            <div role="status" aria-live="polite">
+                {message && (
+                    <p className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
+                        {message}
+                    </p>
+                )}
+            </div>
 
             {error && (
-                <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                 </p>
             )}

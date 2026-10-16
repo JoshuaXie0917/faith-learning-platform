@@ -1,3 +1,27 @@
+// This script writes sample users, Content and read marks. It must never run against
+// the real database (the local .env may point at Production), so it only runs when
+// explicitly confirmed and only against a database on this computer.
+function assertLocalSeedTarget() {
+  if (process.env.SEED_SAMPLE_DATA !== "local-only") {
+    console.error('Refusing to seed: set SEED_SAMPLE_DATA=local-only to confirm sample data for a local database.');
+    process.exit(1);
+  }
+
+  let host = "";
+  try {
+    host = new URL(process.env.DATABASE_URL || "").hostname;
+  } catch {
+    host = "";
+  }
+
+  if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
+    console.error("Refusing to seed: DATABASE_URL is not a database on this computer.");
+    process.exit(1);
+  }
+}
+
+assertLocalSeedTarget();
+
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();

@@ -120,12 +120,12 @@ export default async function SermonDetailPage({ params }: Props) {
             {getContentTypeLabel(content.contentType)}
           </span>
 
-          <span className="text-xs text-stone-400">
+          <span className="text-xs text-stone-500">
             {formatContentDate(content.date)}
           </span>
 
           {content.duration && (
-            <span className="text-xs text-stone-400">{content.duration}</span>
+            <span className="text-xs text-stone-500">{content.duration}</span>
           )}
         </div>
 
@@ -156,7 +156,7 @@ export default async function SermonDetailPage({ params }: Props) {
         <dl className="mb-6 grid grid-cols-1 gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm sm:mb-8 sm:grid-cols-2 sm:p-5">
           {content.speaker?.trim() && (
             <div>
-              <dt className="text-stone-400">作者 / 讲员</dt>
+              <dt className="text-stone-500">作者 / 讲员</dt>
               <dd className="mt-1 break-words font-medium text-stone-800">
                 {content.speaker}
               </dd>
@@ -164,14 +164,14 @@ export default async function SermonDetailPage({ params }: Props) {
           )}
 
           <div>
-            <dt className="text-stone-400">日期</dt>
+            <dt className="text-stone-500">日期</dt>
             <dd className="mt-1 font-medium text-stone-800">
               {formatContentDate(content.date)}
             </dd>
           </div>
 
           <div>
-            <dt className="text-stone-400">类型</dt>
+            <dt className="text-stone-500">类型</dt>
             <dd className="mt-1 font-medium text-stone-800">
               {getContentTypeLabel(content.contentType)}
             </dd>
@@ -179,7 +179,7 @@ export default async function SermonDetailPage({ params }: Props) {
 
           {content.scripture?.trim() && (
             <div>
-              <dt className="text-stone-400">经文 / 来源</dt>
+              <dt className="text-stone-500">经文 / 来源</dt>
               <dd className="mt-1 break-words font-medium text-stone-800">
                 {content.scripture}
               </dd>
@@ -272,7 +272,7 @@ export default async function SermonDetailPage({ params }: Props) {
               href={`/sermons/${previousContent.id}`}
               className="block rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-stone-300 hover:shadow-md"
             >
-              <p className="mb-2 text-xs text-stone-400">上一篇</p>
+              <p className="mb-2 text-xs text-stone-500">上一篇</p>
               <h3 className="line-clamp-2 font-semibold leading-6 text-stone-900">
                 {previousContent.title}
               </h3>
@@ -284,7 +284,7 @@ export default async function SermonDetailPage({ params }: Props) {
               href={`/sermons/${nextContent.id}`}
               className="block rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-stone-300 hover:shadow-md"
             >
-              <p className="mb-2 text-xs text-stone-400">下一篇</p>
+              <p className="mb-2 text-xs text-stone-500">下一篇</p>
               <h3 className="line-clamp-2 font-semibold leading-6 text-stone-900">
                 {nextContent.title}
               </h3>

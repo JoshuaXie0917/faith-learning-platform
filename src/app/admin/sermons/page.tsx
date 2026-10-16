@@ -9,6 +9,7 @@ import { ContentPresentationCard } from "@/components/ContentPresentationCard";
 import { FilterDisclosure } from "@/components/FilterDisclosure";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { formatContentDate } from "@/lib/contentFormat";
+import { softDeleteContent } from "@/lib/contentSave";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,14 +54,8 @@ async function deleteContent(formData: FormData) {
 
   const id = String(formData.get("id") ?? "");
 
-  if (!id) return;
-
-  await prisma.content.update({
-    where: { id },
-    data: {
-      deletedAt: new Date(),
-    },
-  });
+  // Idempotent: a repeated delete keeps the first deletedAt (the grace period is not restarted).
+  await softDeleteContent(prisma, id);
 
   revalidatePath("/admin");
   revalidatePath("/admin/sermons");
@@ -215,7 +210,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
             key={item.label}
             className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5"
           >
-            <p className="mb-1 text-xs text-stone-400">{item.label}</p>
+            <p className="mb-1 text-xs text-stone-500">{item.label}</p>
             <p className="text-xl font-semibold text-stone-900">
               {item.value}
             </p>
@@ -289,7 +284,8 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4" aria-labelledby="admin-content-list-heading">
+        <h2 id="admin-content-list-heading" className="sr-only">内容列表</h2>
         {contents.length === 0 ? (
           <div className="rounded-3xl border border-amber-100 bg-amber-50 p-6 text-center shadow-sm">
             <p className="text-sm leading-7 text-stone-600">
@@ -330,7 +326,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
                       detail={content.title}
                       confirmLabel="确认删除"
                       pendingLabel="正在删除..."
-                      className="w-full rounded-lg bg-red-50 px-3 py-2.5 max-lg:py-3 text-sm text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg bg-red-50 px-3 py-2.5 max-lg:py-3 text-sm text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                   </form>
                 }
@@ -340,7 +336,7 @@ export default async function AdminSermonsPage({ searchParams }: Props) {
         )}
       </section>
 
-      <div className="mt-4 flex flex-col gap-2 text-xs text-stone-400 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-4 flex flex-col gap-2 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
         <p>当前显示 {contents.length} 条内容。</p>
 
         <p>支持新增、编辑和删除。</p>

@@ -4,17 +4,17 @@ const confessionItems = [
   {
     title: "威斯敏斯特信仰告白",
     subtitle: "Westminster Confession of Faith",
-    description: "内容待补充",
+    description: "威斯敏斯特会议于 1646 年完成，共 33 章，系统陈述圣经所教导的信仰与生活。正文整理中。",
   },
   {
     title: "威斯敏斯特大要理问答",
     subtitle: "Westminster Larger Catechism",
-    description: "内容待补充",
+    description: "1647 年完成，共 196 问答，较为详尽地阐述信仰与本分。正文整理中。",
   },
   {
     title: "威斯敏斯特小要理问答",
     subtitle: "Westminster Shorter Catechism",
-    description: "内容待补充",
+    description: "1647 年完成，共 107 问答，简明扼要，常用于家庭与教会的教导。正文整理中。",
   },
 ];
 
@@ -22,12 +22,12 @@ const churchItems = [
   {
     title: "教会治理",
     subtitle: "Presbyterian Church Government",
-    description: "内容待补充",
+    description: "威斯敏斯特会议于 1645 年拟定，阐述长老会的教会治理原则。正文整理中。",
   },
   {
     title: "公共敬拜",
     subtitle: "Directory for Public Worship",
-    description: "内容待补充",
+    description: "1644 年完成，次年获苏格兰教会总会采纳，说明公共敬拜的各项要素。正文整理中。",
   },
 ];
 

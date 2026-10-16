@@ -50,6 +50,10 @@ export default function DashboardPage() {
   const [shares, setShares] = useState<DatabaseShare[]>([]);
   const [isLoadingContents, setIsLoadingContents] = useState(true);
   const [isLoadingShares, setIsLoadingShares] = useState(true);
+  const [contentsFailed, setContentsFailed] = useState(false);
+  const [sharesFailed, setSharesFailed] = useState(false);
+  const [contentsAttempt, setContentsAttempt] = useState(0);
+  const [sharesAttempt, setSharesAttempt] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -77,44 +81,71 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadContents() {
+      setIsLoadingContents(true);
+      setContentsFailed(false);
+
       try {
         // Sets the visitor cookie first, so overdue favorites are included.
         getOrCreateVisitorKey();
-        const response = await fetch("/api/contents");
-        const data = (await response.json()) as { contents?: PublicContent[] };
+        const response = await fetch("/api/contents", { cache: "no-store" });
+        const data = (await response.json().catch(() => null)) as { contents?: PublicContent[] } | null;
 
-        setOfficialContents(data.contents ?? []);
+        // A failed request is an error, never "no content yet".
+        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("contents unavailable");
+
+        if (!isCancelled) setOfficialContents(data.contents);
       } catch {
-        setOfficialContents([]);
+        if (!isCancelled) setContentsFailed(true);
       } finally {
-        setIsLoadingContents(false);
+        if (!isCancelled) setIsLoadingContents(false);
       }
     }
 
     loadContents();
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [contentsAttempt]);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadShares() {
+      setIsLoadingShares(true);
+      setSharesFailed(false);
+
       try {
         const visitorKey = getOrCreateVisitorKey();
 
-        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey) });
-        const data = (await response.json()) as {
+        const response = await fetch("/api/shares", { headers: visitorKeyHeaders(visitorKey), cache: "no-store" });
+        const data = (await response.json().catch(() => null)) as {
           shares?: DatabaseShare[];
-        };
+        } | null;
 
-        setShares(data.shares ?? []);
+        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("shares unavailable");
+
+        if (!isCancelled) setShares(data.shares);
       } catch {
-        setShares([]);
+        if (!isCancelled) setSharesFailed(true);
       } finally {
-        setIsLoadingShares(false);
+        if (!isCancelled) setIsLoadingShares(false);
       }
     }
 
     loadShares();
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [sharesAttempt]);
+
+  // Shown in the stat tiles while loading or after a failure, instead of a misleading 0.
+  const contentCount = isLoadingContents ? "…" : contentsFailed ? "—" : officialContents.length;
+  const shareCount = isLoadingShares ? "…" : sharesFailed ? "—" : shares.length;
 
   const latestContents = officialContents.slice(0, 5);
   const latestShares = shares.slice(0, 5);
@@ -128,8 +159,8 @@ export default function DashboardPage() {
 
       <section className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {[
-          { label: "可学习内容", value: officialContents.length },
-          { label: "公开分享", value: shares.length },
+          { label: "可学习内容", value: contentCount },
+          { label: "公开分享", value: shareCount },
           { label: "我的收藏", value: favoriteSermonIds.length },
           { label: "平台状态", value: "开放浏览" },
         ].map((stat) => (
@@ -137,7 +168,7 @@ export default function DashboardPage() {
             key={stat.label}
             className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5"
           >
-            <p className="mb-2 text-xs tracking-wider text-stone-400">
+            <p className="mb-2 text-xs tracking-wider text-stone-500">
               {stat.label}
             </p>
 
@@ -171,8 +202,19 @@ export default function DashboardPage() {
 
           <div className="space-y-4">
             {isLoadingContents ? (
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
+              <div role="status" className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm sm:p-6">
                 正在加载最新内容……
+              </div>
+            ) : contentsFailed ? (
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm leading-7 text-red-700 sm:p-6">
+                <p>最新内容暂时无法读取，请检查网络后重新加载。</p>
+                <button
+                  type="button"
+                  onClick={() => setContentsAttempt((attempt) => attempt + 1)}
+                  className="mt-3 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-700 max-lg:min-h-11"
+                >
+                  重新加载
+                </button>
               </div>
             ) : latestContents.length === 0 ? (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm leading-7 text-stone-600 sm:p-6">
@@ -186,11 +228,11 @@ export default function DashboardPage() {
                   className="group block rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow-md sm:p-6"
                 >
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-500">
+                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
                       {content.series || content.contentTypeLabel}
                     </span>
 
-                    <span className="text-xs text-stone-400">
+                    <span className="text-xs text-stone-500">
                       {content.contentTypeLabel}
                     </span>
                   </div>
@@ -203,7 +245,7 @@ export default function DashboardPage() {
                     {content.description}
                   </p>
 
-                  <div className="mt-5 flex flex-col gap-2 text-sm text-stone-400 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-5 flex flex-col gap-2 text-sm text-stone-500 sm:flex-row sm:items-center sm:justify-between">
                     <span>{content.date}</span>
                     <span className="text-stone-500 transition group-hover:text-stone-900">
                       进入学习 →
@@ -222,14 +264,25 @@ export default function DashboardPage() {
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-stone-500">
-              这里只展示数据库中真实发布的分享。
+              弟兄姊妹最近公开发布的学习分享。
             </p>
           </div>
 
           <div className="space-y-4">
             {isLoadingShares ? (
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm">
+              <div role="status" className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-sm">
                 正在加载分享……
+              </div>
+            ) : sharesFailed ? (
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm leading-7 text-red-700">
+                <p>分享暂时无法读取，请稍后重新加载。</p>
+                <button
+                  type="button"
+                  onClick={() => setSharesAttempt((attempt) => attempt + 1)}
+                  className="mt-3 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-700 max-lg:min-h-11"
+                >
+                  重新加载
+                </button>
               </div>
             ) : latestShares.length === 0 ? (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm leading-7 text-stone-600">
@@ -248,7 +301,7 @@ export default function DashboardPage() {
                         {share.name}
                       </p>
 
-                      <p className="mt-1 text-xs text-stone-400">
+                      <p className="mt-1 text-xs text-stone-500">
                         {share.createdDate}
                       </p>
                     </div>
@@ -266,7 +319,7 @@ export default function DashboardPage() {
                     {share.content}
                   </p>
 
-                  <p className="mt-4 text-xs text-stone-400">
+                  <p className="mt-4 text-xs text-stone-500">
                     公开至：{share.expiresDate}
                   </p>
                 </Link>

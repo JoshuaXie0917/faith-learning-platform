@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SeriesImageUploadField } from "@/components/SeriesImageUploadField";
 import { SeriesEditForm, SeriesSaveButton } from "@/components/SeriesEditForm";
+import { SeriesCreateForm, type SeriesCreateState } from "@/components/SeriesCreateForm";
+import { normalizeKey } from "@/lib/contentForm";
+import { createSeriesRecord, refreshSeriesContent } from "@/lib/contentSave";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -20,11 +23,16 @@ type Props = {
     }>;
 };
 
-function normalizeKey(value: string) {
-    return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
+type SaveResult = "success" | "error" | "duplicate" | "blank" | "missing";
 
-function getSaveResultUrl(result: "success" | "error", seriesId: string) {
+const saveErrorMessages: Record<Exclude<SaveResult, "success">, string> = {
+    error: "系列保存失败，请检查后重试。",
+    duplicate: "已有同名系列，请使用其他名称。",
+    blank: "请填写系列名称。",
+    missing: "这个系列不存在或已被删除。",
+};
+
+function getSaveResultUrl(result: SaveResult, seriesId: string) {
     const params = new URLSearchParams({
         saveResult: result,
         seriesId,
@@ -34,40 +42,27 @@ function getSaveResultUrl(result: "success" | "error", seriesId: string) {
     return `/admin/taxonomy?${params.toString()}`;
 }
 
-async function createSeries(formData: FormData) {
+async function createSeries(_state: SeriesCreateState, formData: FormData): Promise<SeriesCreateState> {
     "use server";
 
     await requireAdmin();
 
-    const title = String(formData.get("title") ?? "").trim();
+    const title = String(formData.get("title") ?? "");
+    let result: Awaited<ReturnType<typeof createSeriesRecord>>;
 
-    if (!title) {
-        return;
+    try {
+        result = await createSeriesRecord(prisma, title);
+    } catch (error) {
+        console.error("新增系列失败：", error instanceof Error ? error.name : "unknown error");
+        return { error: "新增系列失败，请稍后再试。", message: null, attempt: Date.now() };
     }
 
-    const titleKey = normalizeKey(title);
-
-    const existingSeries = await prisma.series.findUnique({
-        where: {
-            titleKey,
-        },
-        select: {
-            id: true,
-        },
-    });
-
-    if (existingSeries) {
-        return;
+    if (!result.ok) {
+        return { error: result.error, message: null, attempt: Date.now() };
     }
-
-    await prisma.series.create({
-        data: {
-            title,
-            titleKey,
-        },
-    });
 
     revalidatePath("/admin/taxonomy");
+    return { error: null, message: `已新增系列“${result.title}”。`, attempt: Date.now() };
 }
 
 async function updateSeries(formData: FormData) {
@@ -80,13 +75,17 @@ async function updateSeries(formData: FormData) {
     const description = String(formData.get("description") ?? "").trim();
     const imageUrl = String(formData.get("imageUrl") ?? "").trim();
 
-    if (!id || !title) {
-        redirect(getSaveResultUrl("error", id));
+    if (!id) {
+        redirect(getSaveResultUrl("missing", id));
+    }
+
+    if (!title) {
+        redirect(getSaveResultUrl("blank", id));
     }
 
     const titleKey = normalizeKey(title);
 
-    const didUpdate = await prisma.$transaction(async (tx) => {
+    const outcome = await prisma.$transaction(async (tx): Promise<SaveResult> => {
         const series = await tx.series.findUnique({
             where: { id },
             select: {
@@ -95,7 +94,7 @@ async function updateSeries(formData: FormData) {
         });
 
         if (!series) {
-            return false;
+            return "missing";
         }
 
         const conflictingSeries = await tx.series.findUnique({
@@ -108,7 +107,7 @@ async function updateSeries(formData: FormData) {
         });
 
         if (conflictingSeries && conflictingSeries.id !== id) {
-            return false;
+            return "duplicate";
         }
 
         await tx.series.update({
@@ -121,25 +120,20 @@ async function updateSeries(formData: FormData) {
             },
         });
 
-        await tx.content.updateMany({
-            where: {
-                seriesId: id,
-            },
-            data: {
-                series: title,
-            },
-        });
+        // Content in this Series keeps its stored name and search keywords current.
+        await refreshSeriesContent(tx, id, title);
 
-        return true;
+        return "success";
     });
 
-    if (!didUpdate) {
-        redirect(getSaveResultUrl("error", id));
+    if (outcome !== "success") {
+        redirect(getSaveResultUrl(outcome, id));
     }
 
     revalidatePath("/admin/taxonomy");
     revalidatePath("/admin/sermons");
     revalidatePath("/sermons");
+    revalidatePath("/dashboard");
     redirect(getSaveResultUrl("success", id));
 }
 
@@ -148,6 +142,9 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
 
     const params = await searchParams;
     const saveResult = typeof params.saveResult === "string" ? params.saveResult : "";
+    const saveError = saveResult && saveResult !== "success" && saveResult in saveErrorMessages
+        ? saveErrorMessages[saveResult as Exclude<SaveResult, "success">]
+        : null;
     const savedSeriesId = typeof params.seriesId === "string" ? params.seriesId : "";
     const saveAttempt = typeof params.saveAttempt === "string" ? params.saveAttempt : "";
 
@@ -182,26 +179,7 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
             />
 
             <div className="space-y-6">
-                <form
-                    action={createSeries}
-                    className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
-                >
-                    <input
-                        name="title"
-                        type="text"
-                        required
-                        aria-label="新系列名称"
-                        placeholder="输入系列名称"
-                        className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-stone-400 focus:bg-white max-md:text-base max-lg:min-h-11"
-                    />
-
-                    <button
-                        type="submit"
-                        className="rounded-xl bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700"
-                    >
-                        新增系列
-                    </button>
-                </form>
+                <SeriesCreateForm action={createSeries} />
 
                 {seriesList.length === 0 ? (
                     <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm text-stone-600">
@@ -287,9 +265,9 @@ export default async function AdminTaxonomyPage({ searchParams }: Props) {
                                                 </p>
                                             ) : null}
 
-                                            {savedSeriesId === series.id && saveResult === "error" ? (
+                                            {savedSeriesId === series.id && saveError ? (
                                                 <p role="alert" className="text-sm text-red-700">
-                                                    系列保存失败，请检查后重试。
+                                                    {saveError}
                                                 </p>
                                             ) : null}
 

@@ -144,12 +144,12 @@ export default function SharePage() {
                     className="mx-auto max-w-3xl space-y-6 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
                 >
                     <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                        分享会写入数据库，不再只是保存在本地浏览器。未收藏的分享公开展示 7 天，到期后将被清理；收藏后可继续查看。
+                        分享发布后会公开展示 7 天，未被收藏的分享到期后将被清理；收藏后可继续查看。
                     </div>
 
                     <div>
                         <label htmlFor="share-name" className="mb-2 block text-sm font-medium text-stone-700">
-                            姓名 <span className="text-red-500">*</span>
+                            姓名 <span className="text-red-600">*</span>
                         </label>
 
                         <input
@@ -168,7 +168,7 @@ export default function SharePage() {
 
                     <div>
                         <label htmlFor="share-title" className="mb-2 block text-sm font-medium text-stone-700">
-                            分享主题 <span className="text-red-500">*</span>
+                            分享主题 <span className="text-red-600">*</span>
                         </label>
 
                         <input
@@ -188,11 +188,11 @@ export default function SharePage() {
                     <div>
                         <div className="mb-2 flex items-center justify-between gap-4">
                             <label htmlFor="share-content" className="block text-sm font-medium text-stone-700">
-                                分享内容 <span className="text-red-500">*</span>
+                                分享内容 <span className="text-red-600">*</span>
                             </label>
 
                             <span
-                                className={`text-xs ${isOverLimit ? "text-red-600" : "text-stone-400"
+                                className={`text-xs ${isOverLimit ? "text-red-700" : "text-stone-500"
                                     }`}
                             >
                                 {contentCount}/{SHARE_CONTENT_MAX}
@@ -213,19 +213,21 @@ export default function SharePage() {
                                 }`}
                         />
 
-                        <p className="mt-2 text-xs leading-6 text-stone-400">
+                        <p className="mt-2 text-xs leading-6 text-stone-500">
                             最多 800 字，标点、空格和表情都计入。
                         </p>
                     </div>
 
-                    {message && (
-                        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-                            {message}
-                        </p>
-                    )}
+                    <p
+                        role="status"
+                        aria-live="polite"
+                        className={message ? "rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800" : "sr-only"}
+                    >
+                        {message}
+                    </p>
 
                     <div className="flex flex-col gap-4 border-t border-stone-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm leading-6 text-stone-400">
+                        <p className="text-sm leading-6 text-stone-500">
                             发布后会出现在真理集录的最近分享区域。
                         </p>
 

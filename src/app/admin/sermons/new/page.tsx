@@ -4,182 +4,48 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
 import { PageHeader } from "@/components/PageHeader";
-import { AudioBlobUploadField } from "@/components/AudioBlobUploadField";
+import { ContentEditorForm } from "@/components/ContentEditorForm";
+import {
+    CONTENT_MESSAGES,
+    readContentForm,
+    todayInHalifax,
+    validateContentForm,
+    type ContentFormState,
+} from "@/lib/contentForm";
+import { createContentRecord } from "@/lib/contentSave";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const contentTypes = [
-    { value: "recording", label: "录音" },
-    { value: "article", label: "文章" },
-    { value: "file", label: "文件" },
-    { value: "music", label: "音乐音频" },
-    { value: "image", label: "图片" },
-    { value: "link", label: "链接" },
-];
-
-const inputClass =
-    "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base";
-
-const dateInputClass =
-    "w-[190px] max-w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 [color-scheme:light] max-md:text-base";
-
-const textareaClass =
-    "w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-600 max-md:text-base";
-
-function getTodayDate() {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Halifax",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).formatToParts(new Date());
-
-    const year = parts.find((part) => part.type === "year")?.value;
-    const month = parts.find((part) => part.type === "month")?.value;
-    const day = parts.find((part) => part.type === "day")?.value;
-
-    return `${year}-${month}-${day}`;
-}
-
-function normalizeKey(value: string) {
-    return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function toJsonArrayText(value: FormDataEntryValue | null) {
-    const text = String(value ?? "").trim();
-
-    if (!text) {
-        return JSON.stringify([]);
-    }
-
-    const items = text
-        .split(/[,，、\n]/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-    return JSON.stringify(items);
-}
-
-async function createContent(formData: FormData) {
+async function createContent(_state: ContentFormState, formData: FormData): Promise<ContentFormState> {
     "use server";
 
     await requireAdmin();
 
-    const title = String(formData.get("title") ?? "").trim();
-    const contentType = String(formData.get("contentType") ?? "recording");
-    const date = String(formData.get("date") ?? "").trim();
-    const speaker = String(formData.get("speaker") ?? "").trim();
-    const selectedSeriesId = String(formData.get("seriesId") ?? "").trim();
-    const resourceUrl = String(formData.get("resourceUrl") ?? "").trim();
-    const contentBody = String(formData.get("contentBody") ?? "").trim();
+    const values = readContentForm(formData);
+    const checked = validateContentForm(values, todayInHalifax());
 
-    const description =
-        contentBody.length > 120
-            ? `${contentBody.slice(0, 120)}...`
-            : contentBody;
-
-    const speakerKey = speaker ? normalizeKey(speaker) : null;
-
-    const [existingSpeaker, selectedSeries] = await Promise.all([
-        speakerKey
-            ? prisma.speaker.findUnique({
-                where: {
-                    nameKey: speakerKey,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    deletedAt: true,
-                },
-            })
-            : null,
-
-        selectedSeriesId
-            ? prisma.series.findUnique({
-                where: {
-                    id: selectedSeriesId,
-                },
-                select: {
-                    id: true,
-                    title: true,
-                    deletedAt: true,
-                },
-            })
-            : null,
-    ]);
-
-    if (
-        existingSpeaker?.deletedAt ||
-        (selectedSeriesId && (!selectedSeries || selectedSeries.deletedAt))
-    ) {
-        return;
+    if (!checked.ok) {
+        return { error: checked.error, values, attempt: Date.now() };
     }
 
-    let speakerRecord: { id: string; name: string } | null = null;
+    let result: Awaited<ReturnType<typeof createContentRecord>>;
 
-    if (speaker && speakerKey) {
-        if (existingSpeaker) {
-            speakerRecord = {
-                id: existingSpeaker.id,
-                name: existingSpeaker.name,
-            };
-        } else {
-            speakerRecord = await prisma.speaker.create({
-                data: {
-                    name: speaker,
-                    nameKey: speakerKey,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                },
-            });
-        }
+    try {
+        result = await createContentRecord(prisma, checked.value);
+    } catch (error) {
+        console.error("保存内容失败：", error instanceof Error ? error.name : "unknown error");
+        return { error: CONTENT_MESSAGES.saveFailed, values, attempt: Date.now() };
     }
 
-    const seriesRecord: { id: string; title: string } | null = selectedSeries
-        ? {
-            id: selectedSeries.id,
-            title: selectedSeries.title,
-        }
-        : null;
-
-    await prisma.content.create({
-        data: {
-            title: title || "未命名内容",
-            contentType,
-            status: "published",
-
-            date: date || getTodayDate(),
-            description: description || "暂无内容",
-
-            speaker: speakerRecord?.name ?? null,
-            series: seriesRecord?.title ?? null,
-
-            speakerId: speakerRecord?.id ?? null,
-            seriesId: seriesRecord?.id ?? null,
-
-            scripture: null,
-            duration: null,
-            resourceUrl: resourceUrl || null,
-            contentBody: contentBody || null,
-
-            tagsText: toJsonArrayText(formData.get("tags")),
-            searchKeywordsText: JSON.stringify(
-                [title, speaker, seriesRecord?.title ?? ""]
-                    .map((item) => item.trim())
-                    .filter(Boolean)
-            ),
-
-            publishedAt: new Date(),
-            archivedAt: null,
-            deletedAt: null,
-        }
-    });
+    if (!result.ok) {
+        return { error: result.error, values, attempt: Date.now() };
+    }
 
     revalidatePath("/admin");
     revalidatePath("/admin/sermons");
     revalidatePath("/sermons");
+    revalidatePath("/dashboard");
 
     redirect("/admin/sermons?type=all");
 }
@@ -215,179 +81,21 @@ export default async function NewContentPage() {
                 }
             />
 
-            <form
+            <ContentEditorForm
                 action={createContent}
-                className="space-y-8 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
-            >
-                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
-                    请填写标题、内容类型、日期和主要内容。其他信息可以根据需要补充。
-                </div>
-
-                <section>
-                    <div className="mb-5">
-                        <h2 className="text-lg font-semibold text-stone-900">必填信息</h2>
-                        <p className="mt-1 text-sm leading-6 text-stone-500">
-                            这些信息用于展示和整理内容。
-                        </p>
-                    </div>
-
-                    <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
-                        <div>
-                            <label htmlFor="content-title" className="mb-2 block text-sm font-medium text-stone-700">
-                                内容标题 <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                id="content-title"
-                                suppressHydrationWarning
-                                name="title"
-                                type="text"
-                                required
-                                placeholder="例如：在安静中等候"
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="content-type" className="mb-2 block text-sm font-medium text-stone-700">
-                                内容类型 <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                id="content-type"
-                                suppressHydrationWarning
-                                name="contentType"
-                                defaultValue="recording"
-                                className={inputClass}
-                            >
-                                {contentTypes.map((type) => (
-                                    <option key={type.value} value={type.value}>
-                                        {type.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label htmlFor="content-date" className="mb-2 block text-sm font-medium text-stone-700">
-                                日期 <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                id="content-date"
-                                suppressHydrationWarning
-                                name="date"
-                                type="date"
-                                required
-                                defaultValue={getTodayDate()}
-                                className={dateInputClass}
-                            />
-                        </div>
-                    </div>
-                    <div className="mt-5 sm:mt-6">
-                        <label htmlFor="content-body" className="mb-2 block text-sm font-medium text-stone-700">
-                            主要内容 <span className="text-red-500">*</span>
-                        </label>
-
-                        <textarea
-                            id="content-body"
-                            suppressHydrationWarning
-                            name="contentBody"
-                            rows={10}
-                            required
-                            placeholder="填写文章正文、讲道整理、学习内容、资料说明或相关文字。"
-                            className={textareaClass}
-                        />
-
-                        <p className="mt-2 text-xs leading-6 text-stone-400">
-                            主要内容是必填项目，也会用于自动生成内容摘要。
-                        </p>
-                    </div>
-                </section>
-
-                <section className="border-t border-stone-100 pt-8">
-                    <div className="mb-5">
-                        <h2 className="text-lg font-semibold text-stone-900">选填信息</h2>
-                        <p className="mt-1 text-sm leading-6 text-stone-500">
-                            这些信息可以帮助分类、搜索和补充内容。
-                        </p>
-                    </div>
-
-                    <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
-                        <div>
-                            <label htmlFor="content-speaker" className="mb-2 block text-sm font-medium text-stone-700">
-                                作者 / 讲员
-                            </label>
-                            <input
-                                id="content-speaker"
-                                suppressHydrationWarning
-                                name="speaker"
-                                type="text"
-                                placeholder="例如：陈牧师"
-                                className={inputClass}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="content-series" className="mb-2 block text-sm font-medium text-stone-700">
-                                系列
-                            </label>
-
-                            <select
-                                id="content-series"
-                                suppressHydrationWarning
-                                name="seriesId"
-                                defaultValue=""
-                                className={inputClass}
-                            >
-                                <option value="">不属于系列</option>
-                                {seriesList.map((series) => (
-                                    <option key={series.id} value={series.id}>
-                                        {series.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <AudioBlobUploadField inputClass={inputClass} />
-
-                    <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
-                        <div>
-                            <label htmlFor="content-tags" className="mb-2 block text-sm font-medium text-stone-700">
-                                标签
-                            </label>
-                            <input
-                                id="content-tags"
-                                suppressHydrationWarning
-                                name="tags"
-                                type="text"
-                                placeholder="用逗号分隔，例如：安静，等候，信靠"
-                                className={inputClass}
-                            />
-                        </div>
-
-                    </div>
-                </section>
-
-                <div className="flex flex-col gap-4 border-t border-stone-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm leading-6 text-stone-400">
-                        保存后会进入内容列表。
-                    </p>
-
-                    <div className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
-                        <Link
-                            href="/admin/sermons"
-                            className="inline-flex w-full justify-center rounded-full border border-stone-300 px-5 py-2.5 max-lg:py-3 text-sm text-stone-600 transition hover:bg-stone-50 hover:text-stone-900 sm:w-auto"
-                        >
-                            取消
-                        </Link>
-
-                        <button
-                            type="submit"
-                            className="w-full rounded-full bg-stone-900 px-5 py-2.5 max-lg:py-3 text-sm font-medium text-white transition hover:bg-stone-700 sm:w-auto"
-                        >
-                            保存内容
-                        </button>
-                    </div>
-                </div>
-            </form>
+                mode="create"
+                seriesOptions={seriesList}
+                initial={{
+                    title: "",
+                    contentType: "recording",
+                    date: todayInHalifax(),
+                    speaker: "",
+                    seriesId: "",
+                    resourceUrl: "",
+                    contentBody: "",
+                    tags: "",
+                }}
+            />
         </>
     );
 }
