@@ -48,22 +48,16 @@ export default function HomePage() {
 
           <p className="mx-auto mb-10 max-w-2xl leading-8 text-stone-600">
             这里用于整理学习内容、记录分享，并帮助弟兄姊妹在学习中彼此同行。
-            普通成员可以直接进入学习平台；管理员可以登录后台管理内容。
+            无需登录，即可直接进入学习平台。
           </p>
 
+          {/* Admin access is only in the top-right navigation. */}
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/dashboard"
-              className="rounded-full bg-stone-950 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
+              className="inline-flex min-h-11 items-center rounded-full bg-stone-950 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800"
             >
               进入四月花平台
-            </Link>
-
-            <Link
-              href="/login"
-              className="rounded-full border border-stone-300 bg-white/80 px-7 py-3 text-sm font-semibold text-stone-800 shadow-sm backdrop-blur transition hover:border-stone-400 hover:bg-white"
-            >
-              管理员登录
             </Link>
           </div>
         </section>

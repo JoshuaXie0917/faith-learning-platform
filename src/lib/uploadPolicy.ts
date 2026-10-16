@@ -35,7 +35,7 @@ export const UPLOAD_ACCEPT = [
   ".txt",
 ].join(",");
 
-export const UPLOAD_TYPES_LABEL = "音频、图片（JPG、PNG、WebP、GIF）、PDF、Word、PPT 或 TXT 文件";
+export const UPLOAD_TYPES_LABEL = "音频、图片（JPG、PNG、WebP、GIF）、PDF、文档、演示文稿或纯文本文件";
 
 export function isAllowedUploadType(contentType: string): boolean {
   const type = contentType.trim().toLowerCase();

@@ -14,6 +14,7 @@ import {
   setContentFavorite,
 } from "@/lib/contentFavoritesClient";
 import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
+import { userFacingMessage } from "@/lib/userMessage";
 
 type PublicContent = {
   id: string;
@@ -217,7 +218,7 @@ export default function SermonsPage() {
         const data = (await response.json().catch(() => null)) as { contents?: PublicContent[] } | null;
 
         // A failed request is an error, never "no content".
-        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("contents unavailable");
+        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("内容读取失败");
 
         if (!isCancelled) setOfficialContents(data.contents);
       } catch {
@@ -248,7 +249,7 @@ export default function SermonsPage() {
           shares?: DisplayShare[];
         } | null;
 
-        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("shares unavailable");
+        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("分享读取失败");
 
         const nextShares = data.shares.map((share) => ({
           ...share,
@@ -377,11 +378,7 @@ export default function SermonsPage() {
       );
     } catch (error) {
       setFavoriteMessage(
-        error instanceof Error
-          ? error.message
-          : isFavorite
-            ? "取消收藏失败，请稍后再试。"
-            : "收藏失败，请稍后再试。"
+        userFacingMessage(error, isFavorite ? "取消收藏失败，请稍后再试。" : "收藏失败，请稍后再试。")
       );
     } finally {
       setUpdatingFavoriteContentId(null);

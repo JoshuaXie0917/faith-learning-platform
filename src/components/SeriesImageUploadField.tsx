@@ -3,6 +3,7 @@
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 import { useSeriesImageUploadState } from "@/components/SeriesEditForm";
+import { userFacingMessage } from "@/lib/userMessage";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -186,11 +187,7 @@ export function SeriesImageUploadField({
         } catch (uploadError) {
             console.error("Series image upload failed:", uploadError);
 
-            setError(
-                uploadError instanceof Error
-                    ? uploadError.message
-                    : "图片上传失败，请稍后再试。"
-            );
+            setError(userFacingMessage(uploadError, "图片上传失败，请稍后再试。"));
         } finally {
             setIsUploading(false);
             event.target.value = "";

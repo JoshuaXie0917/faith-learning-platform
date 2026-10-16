@@ -94,7 +94,7 @@ export default function DashboardPage() {
         const data = (await response.json().catch(() => null)) as { contents?: PublicContent[] } | null;
 
         // A failed request is an error, never "no content yet".
-        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("contents unavailable");
+        if (!response.ok || !data || !Array.isArray(data.contents)) throw new Error("内容读取失败");
 
         if (!isCancelled) setOfficialContents(data.contents);
       } catch {
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           shares?: DatabaseShare[];
         } | null;
 
-        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("shares unavailable");
+        if (!response.ok || !data || !Array.isArray(data.shares)) throw new Error("分享读取失败");
 
         if (!isCancelled) setShares(data.shares);
       } catch {

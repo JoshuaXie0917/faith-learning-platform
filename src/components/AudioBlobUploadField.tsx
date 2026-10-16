@@ -9,9 +9,11 @@ import {
     UPLOAD_ACCEPT,
     UPLOAD_TYPES_LABEL,
 } from "@/lib/uploadPolicy";
+import { userFacingMessage } from "@/lib/userMessage";
 
 type AudioBlobUploadFieldProps = {
-    inputClass: string;
+    // Kept for callers; the file control is now a button, so the field style is not used.
+    inputClass?: string;
     initialResourceUrl?: string;
     // Lets the surrounding form disable saving while a file is still uploading.
     onUploadingChange?: (isUploading: boolean) => void;
@@ -30,7 +32,6 @@ function getSafeExtension(fileName: string) {
 }
 
 export function AudioBlobUploadField({
-    inputClass,
     initialResourceUrl = "",
     onUploadingChange,
 }: AudioBlobUploadFieldProps) {
@@ -38,6 +39,7 @@ export function AudioBlobUploadField({
 
     const [resourceUrl, setResourceUrl] = useState(initialResourceUrl);
     const [uploadedFileName, setUploadedFileName] = useState("");
+    const [selectedFileName, setSelectedFileName] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -89,11 +91,8 @@ export function AudioBlobUploadField({
         } catch (uploadError) {
             console.error("Blob upload failed:", uploadError);
 
-            setError(
-                uploadError instanceof Error
-                    ? uploadError.message
-                    : "文件上传失败，请稍后再试。"
-            );
+            // Library and network errors are in English; show the fixed Chinese message instead.
+            setError(userFacingMessage(uploadError, "文件上传失败，请稍后再试。"));
         } finally {
             setIsUploading(false);
         }
@@ -104,11 +103,42 @@ export function AudioBlobUploadField({
             <input type="hidden" name="resourceUrl" value={resourceUrl} />
 
             <div>
-                <label htmlFor="content-file" className="mb-2 block text-sm font-medium text-stone-700">
+                <p id="content-file-label" className="mb-2 block text-sm font-medium text-stone-700">
                     上传文件
-                </label>
+                </p>
 
-                <input id="content-file" ref={fileInputRef} type="file" accept={UPLOAD_ACCEPT} aria-describedby="content-file-help" className={inputClass} />
+                {/* The browser's own file control shows "Choose File" in the browser's language, so it is
+                    hidden and opened from a Chinese button instead. */}
+                <input
+                    id="content-file"
+                    ref={fileInputRef}
+                    type="file"
+                    accept={UPLOAD_ACCEPT}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="sr-only"
+                    onChange={(event) => {
+                        setSelectedFileName(event.target.files?.[0]?.name ?? "");
+                        setMessage("");
+                        setError("");
+                    }}
+                />
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        aria-labelledby="content-file-label content-file-choose"
+                        aria-describedby="content-file-name content-file-help"
+                        className="rounded-full border border-stone-300 bg-white px-5 py-2.5 max-lg:py-3 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <span id="content-file-choose">选择文件</span>
+                    </button>
+                    <span id="content-file-name" className="min-w-0 break-all text-sm text-stone-600">
+                        {selectedFileName || "未选择文件"}
+                    </span>
+                </div>
 
                 <p id="content-file-help" className="mt-2 text-xs leading-6 text-stone-500">
                     可以上传{UPLOAD_TYPES_LABEL}。单个文件最大 100MB。

@@ -57,5 +57,5 @@ Short operational notes for the admin login, sessions, Blob uploads and the anon
 
 ## Vercel environments
 
-- Production: `ADMIN_PASSWORD`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET`, `DATABASE_URL`, `SHARE_RETENTION_DELETE_ENABLED` (plus `MEMBER_ACCESS_CODE`, which no code reads since the member login was removed and can be deleted).
+- Production: `ADMIN_PASSWORD`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET`, `DATABASE_URL`, `SHARE_RETENTION_DELETE_ENABLED`. `MEMBER_ACCESS_CODE` was deleted from Vercel in the final Release 3 cleanup: no code has read it since the member login was removed (commit b185d13).
 - Preview receives none of the secrets (the project has no Preview deployments). `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY` are public identifiers and stay available to all environments.

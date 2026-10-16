@@ -1,33 +1,29 @@
 import Link from "next/link";
 
+// Dates and counts checked against published histories of the Westminster Standards.
 const confessionItems = [
   {
     title: "威斯敏斯特信仰告白",
-    subtitle: "Westminster Confession of Faith",
-    description: "威斯敏斯特会议于 1646 年完成，共 33 章，系统陈述圣经所教导的信仰与生活。正文整理中。",
+    description: "威斯敏斯特会议于 1646 年完成，共 33 章，系统陈述圣经所教导的信仰与生活；1647 年获苏格兰教会总会采纳。",
   },
   {
     title: "威斯敏斯特大要理问答",
-    subtitle: "Westminster Larger Catechism",
-    description: "1647 年完成，共 196 问答，较为详尽地阐述信仰与本分。正文整理中。",
+    description: "1647 年完成，共 196 问答，较为详尽地阐述信仰与本分。",
   },
   {
     title: "威斯敏斯特小要理问答",
-    subtitle: "Westminster Shorter Catechism",
-    description: "1647 年完成，共 107 问答，简明扼要，常用于家庭与教会的教导。正文整理中。",
+    description: "1647 年完成，共 107 问答，简明扼要，原为儿童与初学者编写。",
   },
 ];
 
 const churchItems = [
   {
     title: "教会治理",
-    subtitle: "Presbyterian Church Government",
-    description: "威斯敏斯特会议于 1645 年拟定，阐述长老会的教会治理原则。正文整理中。",
+    description: "威斯敏斯特会议拟定，1645 年获苏格兰教会总会采纳，阐述长老会的教会治理原则。",
   },
   {
     title: "公共敬拜",
-    subtitle: "Directory for Public Worship",
-    description: "1644 年完成，次年获苏格兰教会总会采纳，说明公共敬拜的各项要素。正文整理中。",
+    description: "1645 年获苏格兰教会总会与英格兰国会采纳，说明公共敬拜的各项要素。",
   },
 ];
 
@@ -57,15 +53,15 @@ const doctrineItems = [
 const historyItems = [
   {
     title: "苏格兰信条",
-    subtitle: "Scots Confession",
+    subtitle: "1560 年",
   },
   {
     title: "苏格兰国家圣约",
-    subtitle: "National Covenant",
+    subtitle: "1638 年",
   },
   {
     title: "庄严同盟与圣约",
-    subtitle: "Solemn League and Covenant",
+    subtitle: "1643 年",
   },
 ];
 
@@ -102,7 +98,7 @@ export default function AboutPage() {
         {/* 页面标题 */}
         <section className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex rounded-full border border-amber-200 bg-white/75 px-4 py-1.5 text-sm text-amber-700 shadow-sm backdrop-blur">
-            Statement of Faith
+            我们所持守的信仰
           </div>
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-stone-950 sm:text-5xl">
@@ -119,7 +115,7 @@ export default function AboutPage() {
         <section className="mt-20">
           <div className="mb-7">
             <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
-              CONFESSIONAL STANDARDS
+              威斯敏斯特标准
             </p>
 
             <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
@@ -127,7 +123,7 @@ export default function AboutPage() {
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600">
-              这里将整理主要信仰告白与要理问答。
+              这里将整理主要信仰告白与要理问答，正文整理中。
             </p>
           </div>
 
@@ -137,10 +133,6 @@ export default function AboutPage() {
                 key={item.title}
                 className="rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur"
               >
-                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-700">
-                  {item.subtitle}
-                </p>
-
                 <h3 className="text-xl font-bold text-stone-950">
                   {item.title}
                 </h3>
@@ -157,7 +149,7 @@ export default function AboutPage() {
         <section className="mt-16">
           <div className="mb-7">
             <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
-              CHURCH & WORSHIP
+              教会生活
             </p>
 
             <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
@@ -171,10 +163,6 @@ export default function AboutPage() {
                 key={item.title}
                 className="rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur"
               >
-                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-700">
-                  {item.subtitle}
-                </p>
-
                 <h3 className="text-xl font-bold text-stone-950">
                   {item.title}
                 </h3>
@@ -191,7 +179,7 @@ export default function AboutPage() {
         <section className="mt-16 rounded-3xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur sm:p-8">
           <div className="mb-7">
             <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
-              DOCTRINE
+              按主题学习
             </p>
 
             <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">
@@ -219,7 +207,7 @@ export default function AboutPage() {
         <section className="mt-16">
           <div className="mb-7">
             <p className="mb-2 text-sm font-medium tracking-wider text-amber-700">
-              HISTORICAL DOCUMENTS
+              苏格兰改革宗传统
             </p>
 
             <h2 className="text-2xl font-bold text-stone-950 sm:text-3xl">

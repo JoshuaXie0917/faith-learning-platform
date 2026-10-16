@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { visitorKeyHeaders } from "@/lib/visitorKeyHeader";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 
 type ShareDetail = {
     id: string;
@@ -86,14 +87,9 @@ export default function ShareDetailPage() {
         loadShare();
     }, [shareId]);
 
+    // Runs after the in-page confirmation dialog (ConfirmActionButton).
     async function handleDeleteShare() {
         if (!share || isDeleting) return;
-
-        const confirmed = window.confirm(
-            "确定要删除这条分享吗？删除后其他人将看不到。"
-        );
-
-        if (!confirmed) return;
 
         setIsDeleting(true);
         setMessage("");
@@ -193,14 +189,16 @@ export default function ShareDetailPage() {
 
                         {share.isOwner && (
                             <div className="mt-6 border-t border-stone-100 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={handleDeleteShare}
-                                    disabled={isDeleting}
+                                <ConfirmActionButton
+                                    label="删除我的分享"
+                                    title="删除分享"
+                                    message="确定要删除这条分享吗？删除后其他人将看不到。"
+                                    confirmLabel="确认删除"
+                                    pendingLabel="正在删除..."
+                                    isPending={isDeleting}
+                                    onConfirm={handleDeleteShare}
                                     className="w-full rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-medium text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                                >
-                                    {isDeleting ? "正在删除..." : "删除我的分享"}
-                                </button>
+                                />
 
                                 <p className="mt-3 text-xs leading-6 text-stone-500">
                                     只有发布这条分享的同一个浏览器身份可以删除它。

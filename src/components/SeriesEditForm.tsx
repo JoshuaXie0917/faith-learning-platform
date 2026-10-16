@@ -26,7 +26,7 @@ function useSeriesEditFormContext() {
     const context = useContext(SeriesEditFormContext);
 
     if (!context) {
-        throw new Error("Series edit controls must be rendered inside SeriesEditForm.");
+        throw new Error("系列编辑控件必须放在系列编辑表单内。");
     }
 
     return context;
